@@ -1,5 +1,5 @@
 characters = {
-    b'\x80': "0", # TODO: how to get this programmatically?
+    b'\x80': "0",  # TODO: how to get this programmatically?
     b'\x81': "1",
     b'\x82': "2",
     b'\x83': "3",
@@ -74,25 +74,19 @@ characters = {
 
 def get_names(file_bytes):
     result_string = ""
-    start_index = 0
-    start_offset = 0x2d5f0
+    start_offset = 0x2d5f0  #TODO: magic number
     names = []
     for index, byte in enumerate(file_bytes[start_offset:], start=start_offset):
         hex_byte = bytes([byte])
         if hex_byte in characters:
-            if not result_string:
-                start_index = index
             result_string += characters[hex_byte]
         else:
             if result_string and len(result_string) > 2:
                 names.append(result_string)
-                #print(f"{start_index:#x}: {result_string}")
                 result_string = ""
                 if len(names) == 128:
                     return names
-            #print(f"{hex_byte.hex()}", end=' ')
     if result_string and len(result_string) > 2:
-        #print(f"{start_index:#x}: {result_string}")
         names.append(result_string)
 
 

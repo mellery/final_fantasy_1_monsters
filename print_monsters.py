@@ -2,6 +2,7 @@ import struct
 from dataclasses import dataclass
 from monster_names import get_names
 
+
 @dataclass
 class MonsterStats:
     exp: int
@@ -31,6 +32,7 @@ class MonsterStats:
 
         )
 
+
 # Define the struct format for MonsterStats
 struct_format = 'HHHBBBBBBBBBBBBBB'
 
@@ -48,11 +50,11 @@ with open('Final Fantasy (USA).nes', 'rb') as file:
     # Read the entire file as bytes
     file_bytes = file.read()
 
-offset = 0x30530
+offset = 0x30530  #TODO: magic number
 struct_size = struct.calcsize(struct_format)
 names = get_names(file_bytes)
 
 # Loop through all 128 monsters
 for x in range(0, 128):
     monster_stats = create_monster_stats_instance(file_bytes, offset+(x*struct_size))
-    print(names[x], monster_stats)  # Output will be an instance of MonsterStats with the values of the fields
+    print(names[x], monster_stats)
