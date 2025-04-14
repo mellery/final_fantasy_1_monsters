@@ -1,3 +1,5 @@
+
+#TODO write a function that takes a string and a starting hex and generates this
 characters = {
     b'\x80': "0",  # TODO: how to get this programmatically?
     b'\x81': "1",
