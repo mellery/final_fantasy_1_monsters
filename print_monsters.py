@@ -45,16 +45,31 @@ def create_monster_stats_instance(file_bytes, offset):
     return MonsterStats(*unpacked_data)
 
 
-# Open the file in binary mode
-with open('Final Fantasy (USA).nes', 'rb') as file:
-    # Read the entire file as bytes
-    file_bytes = file.read()
+import sys
 
-offset = 0x30530  #TODO: magic number
-struct_size = struct.calcsize(struct_format)
-names = get_names(file_bytes)
+def main():
+    rom_filename = sys.argv[1] if len(sys.argv) > 1 else 'Final Fantasy (USA).nes'
+    
+    try:
+        # Open the file in binary mode
+        with open(rom_filename, 'rb') as file:
+            # Read the entire file as bytes
+            file_bytes = file.read()
+        
+        offset = 0x30530  #TODO: magic number
+        struct_size = struct.calcsize(struct_format)
+        names = get_names(file_bytes)
+        
+        # Loop through all 128 monsters
+        for x in range(0, 128):
+            monster_stats = create_monster_stats_instance(file_bytes, offset+(x*struct_size))
+            print(names[x], monster_stats)
+    except FileNotFoundError:
+        print(f"Error: ROM file '{rom_filename}' not found")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error reading ROM file: {e}")
+        sys.exit(1)
 
-# Loop through all 128 monsters
-for x in range(0, 128):
-    monster_stats = create_monster_stats_instance(file_bytes, offset+(x*struct_size))
-    print(names[x], monster_stats)
+if __name__ == "__main__":
+    main()
