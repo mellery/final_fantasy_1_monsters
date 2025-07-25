@@ -80,8 +80,6 @@ def main():
                 tile, image = address_to_tile(address, offset)
                 images.append(image)
 
-            # heart
-            #address = [0x66, 0x7f, 0xff, 0xff, 0xff, 0x7e, 0x3c, 0x18, 0x66, 0x5f, 0xbf, 0xbf, 0xff, 0x7e, 0x3c, 0x18]
 
             print(f"read {len(images)} tiles")
             grid_size = minimal_difference_pair(len(images))
