@@ -1,6 +1,6 @@
-from ff1_utils import generate_character_map
+from load_tbl import generate_character_map
 
-characters = generate_character_map()
+characters = generate_character_map("final_fantasy.tbl")
 
 
 def find_strings(file_bytes):
