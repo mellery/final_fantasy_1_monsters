@@ -90,69 +90,25 @@ def main():
             print(f"grid size: {grid_size}")
 
             current_address = start_loc
-            output = 0
             x = 0
             while 0 < len(images) - x:
-                
-                # read terrain tile
-                output += 1
-                grid_size = (4, 4)
-                create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
-                x += grid_size[0] * grid_size[1]
-                current_address += grid_size[0] * grid_size[1] * 16
+                x, current_address = process_terrain_tile(images, x, current_address, False)
 
-                # read single tile
-                output += 1
-                grid_size = (1, 1)
-                #create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
-                x += grid_size[0] * grid_size[1]
-                current_address += grid_size[0] * grid_size[1] * 16
+                x, current_address = process_single_tile(images, x, current_address, False)
 
-                # read monster tile
-                output += 1
-                grid_size = (4, 4)
-                create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
-                x += grid_size[0] * grid_size[1]
-                current_address += grid_size[0] * grid_size[1] * 16
+                x, current_address = process_monster_tile(images, x, current_address)
 
-                # read monster tile
-                output += 1
-                grid_size = (4, 4)
-                create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
-                x += grid_size[0] * grid_size[1]
-                current_address += grid_size[0] * grid_size[1] * 16
+                x, current_address = process_monster_tile(images, x, current_address)
 
-                # read medium monster tile
-                output += 1
-                grid_size = (6, 6)
-                create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
-                x += grid_size[0] * grid_size[1]
-                current_address += grid_size[0] * grid_size[1] * 16
+                x, current_address = process_medium_monster_tile(images, x, current_address)
 
-                # read medium monster tile
-                output += 1
-                grid_size = (6, 6)
-                create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
-                x += grid_size[0] * grid_size[1]
-                current_address += grid_size[0] * grid_size[1] * 16
+                x, current_address = process_medium_monster_tile(images, x, current_address)
 
-                # read footer
-                output += 1
-                grid_size = (1, 6)
-                #create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
-                x += grid_size[0] * grid_size[1]
-                current_address += grid_size[0] * grid_size[1] * 16
+                x, current_address = process_footer(images, x, current_address, False)
 
-                # read single tile
-                output += 1
-                grid_size = (1, 1)
-                #create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
-                x += grid_size[0] * grid_size[1]
-                current_address += grid_size[0] * grid_size[1] * 16
+                x, current_address = process_single_tile(images, x, current_address, False)
 
-                print(f"output: {output} images")
-
-                if output >= 168:
+                if current_address >= 0x24020:
                     break
 
             #create_image_grid(images, 'tiles.png', grid_size=grid_size)
@@ -163,6 +119,47 @@ def main():
     except Exception as e:
         print(f"Error reading ROM file: {e}")
         sys.exit(1)
+
+
+def process_terrain_tile(images, x, current_address, create_grid=True):
+    grid_size = (4, 4)
+    if create_grid:
+        create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
+    x += grid_size[0] * grid_size[1]
+    current_address += grid_size[0] * grid_size[1] * 16
+    return x, current_address
+
+def process_single_tile(images, x, current_address, create_grid=False):
+    grid_size = (1, 1)
+    if create_grid:
+        create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
+    x += grid_size[0] * grid_size[1]
+    current_address += grid_size[0] * grid_size[1] * 16
+    return x, current_address
+
+def process_monster_tile(images, x, current_address, create_grid=True):
+    grid_size = (4, 4)
+    if create_grid:
+        create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
+    x += grid_size[0] * grid_size[1]
+    current_address += grid_size[0] * grid_size[1] * 16
+    return x, current_address
+
+def process_medium_monster_tile(images, x, current_address, create_grid=True):
+    grid_size = (6, 6)
+    if create_grid:
+        create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
+    x += grid_size[0] * grid_size[1]
+    current_address += grid_size[0] * grid_size[1] * 16
+    return x, current_address
+
+def process_footer(images, x, current_address, create_grid=False):
+    grid_size = (1, 6)
+    if create_grid:
+        create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
+    x += grid_size[0] * grid_size[1]
+    current_address += grid_size[0] * grid_size[1] * 16
+    return x, current_address
 
 
 if __name__ == "__main__":

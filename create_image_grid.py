@@ -33,7 +33,7 @@ def create_image_grid(images, output_path, grid_size=(10, 10)):
 
     # Save the new image
     grid_image.save(output_path)
-    print(f"Image grid saved to {output_path}")
+    #print(f"Image grid saved to {output_path}")
 
 if __name__ == '__main__':
     # This is an example of how to use the function.
