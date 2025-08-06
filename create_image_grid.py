@@ -28,6 +28,9 @@ def create_image_grid(images, output_path, grid_size=(10, 10)):
         y_offset = row * img_height
         grid_image.paste(img, (x_offset, y_offset))
 
+        if index >= grid_size[0] * grid_size[1] - 1:
+            break
+
     # Save the new image
     grid_image.save(output_path)
     print(f"Image grid saved to {output_path}")
