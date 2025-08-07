@@ -92,22 +92,60 @@ def main():
             current_address = start_loc
             x = 0
             while 0 < len(images) - x:
-                x, current_address = process_terrain_tile(images, x, current_address, False)
+                # Check if we're near the end where larger monsters are located
+                if current_address >= 0x22570:  # Try original detection address
+                
+                    # Process terrain first, then large monsters
+                    #print(f"Processing terrain tile at address {current_address:08x}")
+                    x, current_address = process_terrain_tile(images, x, current_address, False)
 
-                x, current_address = process_single_tile(images, x, current_address, False)
+                    print(f"Processing single tile at address {current_address:08x}")
+                    x, current_address = process_single_tile(images, x, current_address, False)
+                    
+                    print(f"Processing Kary monster tile at address {current_address:08x}")
+                    x, current_address = process_kari_monster_tile(images, x, current_address, True)
+                    print(f"Processing Lich monster tile at address {current_address:08x}")
+                    x, current_address = process_lich_monster_tile(images, x, current_address, True)
+                    
+                    x, current_address = process_footer(images, x, current_address, False)
+                    x, current_address = process_terrain_tile(images, x, current_address, False)
 
-                x, current_address = process_monster_tile(images, x, current_address)
+                    print(f"Processing Kraken monster tile at address {current_address:08x}")
+                    x, current_address = process_kraken_monster_tile(images, x, current_address, True)
+                    
+                    print(f"Processing Tiamat monster tile at address {current_address:08x}")
+                    x, current_address = process_tiamat_monster_tile(images, x, current_address, True)
+                    
+                    x, current_address = process_terrain_tile(images, x, current_address, False)
+                    x, current_address = process_single_tile(images, x, current_address, False)
+                    x, current_address = process_single_tile(images, x, current_address, False)
+                    x, current_address = process_single_tile(images, x, current_address, False)
+                    x, current_address = process_single_tile(images, x, current_address, False)
+                    x, current_address = process_single_tile(images, x, current_address, False)
+                    x, current_address = process_single_tile(images, x, current_address, False)
+                    x, current_address = process_single_tile(images, x, current_address, False)
 
-                x, current_address = process_monster_tile(images, x, current_address)
+                    print(f"Processing Chaos monster tile at address {current_address:08x}")
+                    x, current_address = process_chaos_monster_tile(images, x, current_address, True)
+                    # All large monsters processed
+                    break
+                else:
+                    # Normal processing for smaller monsters
+                    x, current_address = process_terrain_tile(images, x, current_address, False)
 
-                x, current_address = process_medium_monster_tile(images, x, current_address)
+                    x, current_address = process_single_tile(images, x, current_address, False)
 
-                x, current_address = process_medium_monster_tile(images, x, current_address)
+                    x, current_address = process_monster_tile(images, x, current_address, True)
 
-                x, current_address = process_footer(images, x, current_address, False)
+                    x, current_address = process_monster_tile(images, x, current_address, True)
 
-                x, current_address = process_single_tile(images, x, current_address, False)
+                    x, current_address = process_medium_monster_tile(images, x, current_address, True)
 
+                    x, current_address = process_medium_monster_tile(images, x, current_address, True)
+
+                    x, current_address = process_footer(images, x, current_address, False)
+
+                    x, current_address = process_single_tile(images, x, current_address, False)
                 if current_address >= 0x24020:
                     break
 
@@ -155,6 +193,195 @@ def process_medium_monster_tile(images, x, current_address, create_grid=True):
 
 def process_footer(images, x, current_address, create_grid=False):
     grid_size = (1, 6)
+    if create_grid:
+        create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
+    x += grid_size[0] * grid_size[1]
+    current_address += grid_size[0] * grid_size[1] * 16
+    return x, current_address
+
+def process_large_monster_tile(images, x, current_address, create_grid=True):
+    # Try 8x8 for large monsters (64 tiles)
+    grid_size = (8, 8)
+    if create_grid:
+        create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size, 
+                         show_grid=False, show_numbers=False, start_index=x)
+    x += grid_size[0] * grid_size[1]
+    current_address += grid_size[0] * grid_size[1] * 16
+    return x, current_address
+
+def process_kari_monster_tile(images, x, current_address, create_grid=True):
+    """Process Kary monster with specific blank tile pattern"""
+    grid_size = (8, 8)
+    
+    if create_grid:
+        # Create a blank tile (8x8 white image)
+        blank_tile = Image.new('L', (8, 8), 0)
+        
+        # Kary starts at tile 1681, but our debug worked with 1680, so offset by -1
+        start_offset = -1
+        
+        # Build the tile list with blank insertions at positions 15, 39, 47-49, 55-58, 63
+        selected_tiles = []
+        source_tile_index = 0
+        blank_positions = {15, 39, 47, 48, 49, 55, 56, 57, 58, 63}
+        
+        for position in range(64):
+            if position in blank_positions:
+                selected_tiles.append(blank_tile)
+            else:
+                tile_index = x + start_offset + source_tile_index
+                if tile_index >= 0 and tile_index < len(images):
+                    selected_tiles.append(images[tile_index])
+                source_tile_index += 1
+        
+        create_image_grid(selected_tiles, f'tiles_{current_address:08x}.png', grid_size=grid_size, 
+                         show_grid=False, show_numbers=False, start_index=0, scale_factor=1)
+    
+    # Advance by the number of actual tiles used (64 - 10 blanks = 54 tiles)
+    tiles_used = 54
+    x += tiles_used
+    current_address += tiles_used * 16
+    return x, current_address
+
+def process_lich_monster_tile(images, x, current_address, create_grid=True):
+    """Process Lich monster with specific blank tile pattern"""
+    grid_size = (8, 8)
+    
+    if create_grid:
+        # Create a blank tile (8x8 white image)
+        blank_tile = Image.new('L', (8, 8), 0)
+        
+        # Build the tile list with blank insertions at positions 4-7, 14-15, 23, 31, 38-39, 47, 54-55, 63
+        selected_tiles = []
+        source_tile_index = 0
+        blank_positions = {4, 5, 6, 7, 14, 15, 23, 31, 38, 39, 47, 54, 55, 63}
+        
+        for position in range(64):
+            if position in blank_positions:
+                selected_tiles.append(blank_tile)
+            else:
+                tile_index = x + source_tile_index
+                if tile_index < len(images):
+                    selected_tiles.append(images[tile_index])
+                source_tile_index += 1
+        
+        create_image_grid(selected_tiles, f'tiles_{current_address:08x}.png', grid_size=grid_size, 
+                         show_grid=False, show_numbers=False, start_index=0, scale_factor=1)
+    
+    # Advance by the number of actual tiles used (64 - 14 blanks = 50 tiles)
+    tiles_used = 50
+    x += tiles_used
+    current_address += tiles_used * 16
+    return x, current_address
+
+def process_kraken_monster_tile(images, x, current_address, create_grid=True):
+    """Process Kraken monster with specific blank tile pattern starting at x+1"""
+    grid_size = (8, 8)
+    
+    if create_grid:
+        # Create a blank tile (8x8 white image)
+        blank_tile = Image.new('L', (8, 8), 0)
+        
+        # Start at x+1 to skip the tile that doesn't belong
+        start_offset = 1
+        
+        # Build the tile list with blank insertions at positions 0, 6, 7, 8, 15, 16, 23, 31, 47, 55, 58
+        selected_tiles = []
+        source_tile_index = 0
+        blank_positions = {0, 6, 7, 8, 15, 16, 24, 32, 48, 56, 58}
+        
+        for position in range(64):
+            if position in blank_positions:
+                selected_tiles.append(blank_tile)
+            else:
+                tile_index = x + start_offset + source_tile_index
+                if tile_index < len(images):
+                    selected_tiles.append(images[tile_index])
+                source_tile_index += 1
+        
+        create_image_grid(selected_tiles, f'tiles_{current_address:08x}.png', grid_size=grid_size, 
+                         show_grid=False, show_numbers=False, start_index=0, scale_factor=1)
+    
+    # Advance by the number of actual tiles used (64 - 11 blanks = 53 tiles) + 1 skipped tile = 54 total
+    tiles_used = 54
+    x += tiles_used
+    current_address += tiles_used * 16
+    return x, current_address
+
+def process_tiamat_monster_tile(images, x, current_address, create_grid=True):
+    """Process Tiamat monster with specific blank tile pattern"""
+    grid_size = (8, 8)
+    
+    if create_grid:
+        # Create a blank tile (8x8 white image)
+        blank_tile = Image.new('L', (8, 8), 0)
+        
+        # Build the tile list with blank insertions at positions 0, 1, 2, 6, 7, 15, 23, 31, 39, 48, 56, 63
+        selected_tiles = []
+        source_tile_index = 0
+        blank_positions = {0, 1, 2, 6, 7, 15, 23, 31, 39, 48, 56, 63}
+        
+        for position in range(64):
+            if position in blank_positions:
+                selected_tiles.append(blank_tile)
+            else:
+                tile_index = x + source_tile_index
+                if tile_index < len(images):
+                    selected_tiles.append(images[tile_index])
+                source_tile_index += 1
+        
+        create_image_grid(selected_tiles, f'tiles_{current_address:08x}.png', grid_size=grid_size, 
+                         show_grid=False, show_numbers=False, start_index=0, scale_factor=1)
+    
+    # Advance by the number of actual tiles used (64 - 12 blanks = 52 tiles)
+    tiles_used = 52
+    x += tiles_used
+    current_address += tiles_used * 16
+    return x, current_address
+
+def process_chaos_monster_tile(images, x, current_address, create_grid=True):
+    """Process Chaos monster with specific blank tile pattern"""
+    grid_size = (12, 14)
+    
+    if create_grid:
+        # Create a blank tile (8x8 white image)
+        blank_tile = Image.new('L', (8, 8), 0)
+        
+        # Build the tile list with blank insertions at the specified positions
+        selected_tiles = []
+        source_tile_index = 0
+        blank_positions = {0, 1, 5, 10, 11, 12, 13, 14, 15, 25, 26, 27, 28, 40, 41, 
+                          42, 55, 69, 80, 85, 86, 93, 94, 95, 96, 98, 99, 100, 108, 
+                          109, 110, 111, 112, 113, 114, 118, 122, 123, 124, 125, 126,
+                          127, 136, 137, 138, 139, 140, 141, 145, 146, 147, 150, 151,
+                          152, 153, 154, 155, 156, 157, 158, 159, 160, 161}
+        
+        for position in range(168):  # 12x14 = 168 tiles
+            if position in blank_positions:
+                selected_tiles.append(blank_tile)
+            else:
+                tile_index = x + source_tile_index
+                if tile_index < len(images):
+                    selected_tiles.append(images[tile_index])
+                source_tile_index += 1
+        
+        create_image_grid(selected_tiles, f'tiles_{current_address:08x}.png', grid_size=grid_size, 
+                         show_grid=False, show_numbers=False, start_index=0, scale_factor=1)
+    
+    # Calculate actual tiles used (168 total - number of blanks)
+    blank_count = len({0, 1, 5, 10, 11, 12, 13, 14, 15, 25, 26, 27, 28, 40, 41, 
+                      42, 55, 69, 80, 85, 86, 93, 94, 95, 96, 98, 99, 100, 108, 
+                      109, 110, 111, 112, 113, 114, 118, 122, 123, 124, 125, 126,
+                      127, 136, 137, 138, 139, 140, 141, 145, 146, 147, 150, 151,
+                      152, 153, 154, 155, 156, 157, 158, 159, 160, 161})
+    tiles_used = 168 - blank_count
+    x += tiles_used
+    current_address += tiles_used * 16
+    return x, current_address
+
+def process_huge_monster_tile(images, x, current_address, create_grid=False):
+    # Huge monsters are 12x12
+    grid_size = (12, 12)
     if create_grid:
         create_image_grid(images[x:], f'tiles_{current_address:08x}.png', grid_size=grid_size)
     x += grid_size[0] * grid_size[1]
