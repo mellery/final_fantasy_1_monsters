@@ -136,10 +136,19 @@ unified item-id namespace to names and infers shop type from contents.
 comes from an icon tile, not decoded), so duplicates like "Silver, Silver"
 appear. Clinic/caravan price slots and town/shop-type grouping are not decoded.
 
+#### `scripts/print_prices.py` ⭐
+**Purpose**: Decode the per-item buy-price table at 0x37c10. Magic is priced by
+spell level. Verified by the 'Power' item's 12345 placeholder and consumable prices.
+
+#### `scripts/print_treasure.py` ⭐
+**Purpose**: Decode the 256-chest contents table at 0x3f110. Item chests
+(weapons/armor/quest/consumables) decode to verified names; gold chests are
+flagged by id. Use `--items` to list only item chests.
+
 #### `scripts/item_names.py`
 **Purpose**: Shared helpers - weapon/armor/magic/consumable name extraction,
-the unified item-id map, and element/family/target bitfield decoding. Imported
-by the four print_* scripts above.
+the unified item-id map, prices, gold-name strings, and element/family/target
+bitfield decoding. Imported by the print_* scripts above.
 
 ## Important ROM Offsets
 
@@ -165,6 +174,17 @@ by the four print_* scripts above.
 ### Unified item-id namespace (shops, treasure)
 - 0x01-0x11 quest items, 0x16-0x1b consumables, 0x1c-0x43 weapons,
   0x44-0x6b armor, 0xb0-0xef magic
+- In treasure context, 0x6c-0xff are gold chests instead of magic
+
+### Prices
+- **Price Table**: 0x37c10, indexed by item id, 2 bytes LE (ids 0x01-0xef).
+  Quest items = 0 (unsellable). Magic priced by level: 100/400/1500/4000/
+  8000/20000/45000/60000 for levels 1-8.
+
+### Treasure
+- **Chest Contents**: 0x3f110, flat array of 256 item ids (one byte per chest).
+  Item ids 0x01-0x6b decode to verified names; ids 0x6c-0xff are gold chests
+  whose exact amount is not yet decoded.
 
 ### Element bitfield (weapons, magic, monster weak/resist)
 - 0x01 Status, 0x02 Poison, 0x04 Time, 0x08 Death,

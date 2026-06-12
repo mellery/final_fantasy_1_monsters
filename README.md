@@ -162,17 +162,21 @@ Custom scripts for automated extraction and analysis:
 - Monster sprite sheets extracted (grayscale, via find_ff1_monster_tiles.py)
 - Weapon / armor / magic data tables extracted and verified (print_weapons/armor/magic.py)
 - Shop inventories extracted (print_shops.py)
+- Item prices extracted and verified (print_prices.py)
+- Treasure chest contents extracted (print_treasure.py; item chests verified)
+- Monster weak/resist decoded with the element bitfield (print_monsters.py)
 - Element bitfield fully decoded (Status/Poison/Time/Death/Fire/Ice/Lit/Earth)
 
 ### In Progress 🔄
 - Unknown fields in monster stats (5 fields remaining)
+- Treasure gold-chest amounts (ids 0x6c-0xff) and the 0x12-0x15 special items
 - Shop town/type labels and clinic/caravan price slots
 - Weapon/armor category words (second word from icon tile)
 
 ### TODO ⏸️
-- Item/equipment/magic prices
 - Enemy formations / encounter tables
-- Treasure chest contents
+- Character class / level-up / EXP tables
+- Maps (RLE-compressed overworld + town/dungeon)
 - Extract music and sound effects
 - Map complete game data structures in Ghidra
 
