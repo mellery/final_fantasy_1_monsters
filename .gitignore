@@ -1,5 +1,8 @@
 *.nes
 
+# Generated artifacts (reproduced by scripts)
+docs/dialog_dump.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
