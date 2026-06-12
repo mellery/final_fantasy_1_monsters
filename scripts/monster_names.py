@@ -1,7 +1,9 @@
+import os
 import sys
 from load_tbl import generate_character_map
 
-characters = generate_character_map("final_fantasy.tbl")
+TBL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools', 'final_fantasy.tbl')
+characters = generate_character_map(TBL_PATH)
 
 def get_names(file_bytes):
     result_string = ""

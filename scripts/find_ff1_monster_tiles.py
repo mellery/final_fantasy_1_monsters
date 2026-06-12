@@ -1,19 +1,21 @@
 import os
 import sys
-from tkinter import Image
 import numpy as np
 from PIL import Image
 from create_image_grid import create_image_grid
-from palette_manager import (
-    tile_to_image,
-    extract_palettes_from_rom,
-    get_monster_palette,
-    DEFAULT_SPRITE_PALETTES
-)
+
+
+# Grayscale levels for the 4 possible 2-bit pixel values
+GRAYSCALE_LEVELS = np.array([0, 85, 170, 255], dtype=np.uint8)
+
+
+def tile_to_image(tile):
+    """Render an 8x8 tile of 2-bit color indices as a grayscale PIL image"""
+    return Image.fromarray(GRAYSCALE_LEVELS[tile], mode='L')
 
 
 # https://www.dustmop.io/blog/2015/04/28/nes-graphics-part-1/
-def address_to_tile(address, offset=0, save_image=False, palette=None, output_dir='output'):
+def address_to_tile(address, offset=0, save_image=False, output_dir='output'):
     """
     Convert NES tile data to image
 
@@ -21,7 +23,6 @@ def address_to_tile(address, offset=0, save_image=False, palette=None, output_di
         address: 16 bytes of tile data (2 bitplanes)
         offset: Offset for filename if saving
         save_image: Whether to save the tile image
-        palette: Optional Palette object for color rendering
         output_dir: Directory to save images
 
     Returns:
@@ -35,8 +36,7 @@ def address_to_tile(address, offset=0, save_image=False, palette=None, output_di
         for j in range(8):
             tile[i, j] = ((lower >> (7 - j)) & 1) + (((upper >> (7 - j)) & 1) << 1)
 
-    # Convert to image (with or without palette)
-    image = tile_to_image(tile, palette)
+    image = tile_to_image(tile)
 
     if save_image:
         if not os.path.exists(output_dir):
@@ -67,66 +67,20 @@ def minimal_difference_pair(n):
     return min(pairs, key=lambda x: abs(x[0] - x[1]))
 
 def main():
-    # Parse command line options
-    use_color = '--color' in sys.argv or '-c' in sys.argv
-    palette_offset = None
-
-    # Find ROM filename (first non-option argument)
-    rom_filename = '../roms/Final Fantasy (USA).nes'
-    for i, arg in enumerate(sys.argv[1:], 1):
-        if not arg.startswith('-') and not (i > 1 and sys.argv[i-1] == '--palette-offset'):
-            rom_filename = arg
-            break
-
-    # Check for custom palette offset
-    for i, arg in enumerate(sys.argv):
-        if arg == '--palette-offset' and i + 1 < len(sys.argv):
-            palette_offset = int(sys.argv[i + 1], 16)
+    rom_filename = sys.argv[1] if len(sys.argv) > 1 else '../roms/Final Fantasy (USA).nes'
 
     try:
-        # Open the file in binary mode
         offset = 0
         with open(rom_filename, 'rb') as file:
-            rom_data = file.read()
-
-        # Extract palettes if color mode enabled
-        palette_set = None
-        if use_color:
-            if palette_offset is not None:
-                print(f"Extracting palettes from ROM offset 0x{palette_offset:X}")
-                palette_set = extract_palettes_from_rom(rom_data, palette_offset, count=4)
-            else:
-                print("Using default sprite palettes")
-                palette_set = DEFAULT_SPRITE_PALETTES
-
-            print(f"Loaded {len(palette_set)} palettes:")
-            for i, pal in enumerate(palette_set.palettes):
-                print(f"  Palette {i}: {pal}")
-
-        # Re-open for tile reading
-        with open(rom_filename, 'rb') as file:
-            # Read the entire file as bytes
-            #file_bytes = file.read()
-            # find_tiles(file_bytes)
-
             start_loc = 0x1c000+32
             file.seek(start_loc)
 
             images = []
-            monster_id = 0  # Track which monster we're processing
 
             while chunk := file.read(16):  # Read 16 bytes at a time
-                address = []
+                address = list(chunk)
 
-                for b in chunk:
-                    address.append(b)
-
-                # Get palette for this monster if using color
-                palette = None
-                if use_color and palette_set:
-                    palette = get_monster_palette(monster_id, palette_set)
-
-                tile, image = address_to_tile(address, offset, palette=palette)
+                tile, image = address_to_tile(address, offset)
                 images.append(image)
                 offset += 16
 
