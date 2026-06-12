@@ -1,6 +1,7 @@
 import struct
 from dataclasses import dataclass
 from monster_names import get_names
+from item_names import decode_bits, ELEMENTS, FAMILIES
 
 
 @dataclass
@@ -25,10 +26,11 @@ class MonsterStats:
 
     def __str__(self):
         return (
-            f"  ({self.family_group})\n"
+            f"  family: {decode_bits(self.family_group, FAMILIES)}\n"
             f"  EXP:{self.exp} \t GLD: {self.gold} \t HP: {self.HP}\n"
             f"  ABS: {self.absorb} \t HIT: {self.hits} \t DMG: {self.dmg}\n"
-            f"  WEAK:{self.element_weak}\tRESIST:{self.element_resist}\n"
+            f"  WEAK: {decode_bits(self.element_weak, ELEMENTS)}"
+            f"\tRESIST: {decode_bits(self.element_resist, ELEMENTS)}\n"
 
         )
 
