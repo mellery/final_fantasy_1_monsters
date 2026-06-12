@@ -114,6 +114,36 @@ def get_misc_names(data):
     return names[1:]  # first split is the empty lead-in before LUTE
 
 
+PRICE_TABLE = 0x37c10  # gold price per item id, 2 bytes LE; ids 0x01-0xef
+MAGIC_PRICE_LEVELS = [100, 400, 1500, 4000, 8000, 20000, 45000, 60000]
+
+
+def get_price(data, item_id):
+    """Buy price in gold for an item id (0 = not for sale)."""
+    import struct
+    return struct.unpack_from('<H', data, PRICE_TABLE + item_id * 2)[0]
+
+
+def get_gold_names(data):
+    """Treasure gold pseudo-items (ids 0x6c-0xaf): the '10 G'..'65000 G' strings
+    that follow the armor names in the packed stream at 0x2bc4d."""
+    names = []
+    cur = ''
+    i = 0x2bc4d
+    while len(names) < 68 and i < len(data):
+        x = data[i]
+        if x == 0x00:
+            if cur.strip():
+                names.append(cur.strip())
+            cur = ''
+        else:
+            key = bytes([x])
+            if key in characters:
+                cur += characters[key]
+        i += 1
+    return names
+
+
 def build_item_id_map(data):
     """Unified shop/treasure item-id -> name, verified against shop contents.
 
