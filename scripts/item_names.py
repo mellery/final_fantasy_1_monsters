@@ -86,3 +86,51 @@ def get_armor_names(data):
 
 def get_magic_names(data):
     return [_decode_entry(data, MAGIC_NAMES + i * 5, 5) for i in range(64)]
+
+
+MISC_NAMES = 0x2b910  # quest items + consumables, 0x00-delimited, IDs start at 0x01
+
+
+def get_misc_names(data):
+    """Quest/consumable item names as a 0x00-delimited stream (ID = index+1).
+
+    IDs 0x12-0x15 are unused (a blank record), so this list includes empty
+    strings at those positions to keep IDs aligned: 0x16=TENT .. 0x1b=SOFT.
+    """
+    names = []
+    cur = ''
+    i = MISC_NAMES
+    while i < EQUIP_NAME_STREAM:
+        x = data[i]
+        if x == 0x00:
+            names.append(cur.strip())
+            cur = ''
+        else:
+            key = bytes([x])
+            if key in characters:
+                cur += characters[key]
+        i += 1
+    names.append(cur.strip())  # flush the final entry (SOFT has no trailing 0x00)
+    return names[1:]  # first split is the empty lead-in before LUTE
+
+
+def build_item_id_map(data):
+    """Unified shop/treasure item-id -> name, verified against shop contents.
+
+    0x01-0x11 quest items, 0x16-0x1b consumables, 0x1c-0x43 weapons,
+    0x44-0x6b armor, 0xb0-0xef magic. Unmapped ids render as 'item:NN'.
+    """
+    weapons, armor, magic, misc = (
+        get_weapon_names(data), get_armor_names(data),
+        get_magic_names(data), get_misc_names(data))
+    id_map = {}
+    for i, nm in enumerate(misc):
+        if nm:
+            id_map[i + 1] = nm
+    for i, nm in enumerate(weapons):
+        id_map[0x1c + i] = nm
+    for i, nm in enumerate(armor):
+        id_map[0x44 + i] = nm
+    for i, nm in enumerate(magic):
+        id_map[0xb0 + i] = nm
+    return id_map

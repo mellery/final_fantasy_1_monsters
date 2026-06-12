@@ -122,6 +122,25 @@ correctly and grayscale output is sufficient.
 #### `scripts/create_image_grid.py`
 **Purpose**: Create image grids from extracted tiles
 
+### Item / Equipment / Magic / Shop Extraction
+
+#### `scripts/print_weapons.py` / `print_armor.py` / `print_magic.py` ⭐
+**Purpose**: Decode the fixed-size weapon (40x8), armor (40x4), and magic (64x8)
+record tables into readable tables with names, stats, and decoded element/
+family/target bitfields. Offsets and fields verified against known FF1 values.
+
+#### `scripts/print_shops.py` ⭐
+**Purpose**: Decode shop inventories via the pointer table at 0x38310. Maps the
+unified item-id namespace to names and infers shop type from contents.
+**Limitations**: Weapon/armor names are first-words only (the category word
+comes from an icon tile, not decoded), so duplicates like "Silver, Silver"
+appear. Clinic/caravan price slots and town/shop-type grouping are not decoded.
+
+#### `scripts/item_names.py`
+**Purpose**: Shared helpers - weapon/armor/magic/consumable name extraction,
+the unified item-id map, and element/family/target bitfield decoding. Imported
+by the four print_* scripts above.
+
 ## Important ROM Offsets
 
 ### Monster Data
@@ -130,6 +149,27 @@ correctly and grayscale output is sufficient.
 - **Monster Stats Start**: 0x30530
 - **Monster Stats Size**: 20 bytes per monster
 - **Total Monsters**: 128
+
+### Item / Equipment / Magic Data (all verified against known FF1 values)
+- **Weapon Data**: 0x30010, 40 entries x 8 bytes
+  (hit%, damage, crit%, spell-on-use, element, family-bonus, sprite, palette)
+- **Armor Data**: 0x30150, 40 entries x 4 bytes (weight, defense, element-resist, b3)
+- **Magic Data**: 0x301f0, 64 entries x 8 bytes
+  (accuracy, effectivity, element, target, routine, gfx, palette, unused)
+- **Magic Names**: 0x2be13, 64 x 5 bytes (clean fixed-width)
+- **Weapon+Armor Names**: 0x2b9cc, packed 0x00-delimited stream (0-39 weapons, 40-79 armor)
+- **Quest/Consumable Names**: 0x2b910, 0x00-delimited (IDs 0x01-0x1b; 0x12-0x15 unused)
+- **Shop Pointer Table**: 0x38310, little-endian CPU pointers ($8000 bank, file = ptr + 0x30000);
+  each points to a 0x00-terminated item-id list. Unused slots point back into the table.
+
+### Unified item-id namespace (shops, treasure)
+- 0x01-0x11 quest items, 0x16-0x1b consumables, 0x1c-0x43 weapons,
+  0x44-0x6b armor, 0xb0-0xef magic
+
+### Element bitfield (weapons, magic, monster weak/resist)
+- 0x01 Status, 0x02 Poison, 0x04 Time, 0x08 Death,
+  0x10 Fire, 0x20 Ice, 0x40 Lightning, 0x80 Earth
+  (verified: STOP=Time, RUB=Death, QAKE=Earth, FIRE/ICE/LIT match)
 
 ### PPU/Graphics
 - **Character Tiles**: PPU $80 (verified in FCEUX PPU Viewer)

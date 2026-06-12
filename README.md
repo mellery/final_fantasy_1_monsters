@@ -158,17 +158,22 @@ Custom scripts for automated extraction and analysis:
 - Monster stats structure decoded (17/20 fields identified)
 - Character encoding table rebuilt from DataCrystal (NA section, with DTE pairs)
 - String extraction working (intro text at 0x37f2f and dialog at ~0x28000 extract cleanly)
+- Dialog dumper (print_dialog.py walks the 256-entry pointer table)
 - Monster sprite sheets extracted (grayscale, via find_ff1_monster_tiles.py)
-- Element/family bitvectors partially decoded
+- Weapon / armor / magic data tables extracted and verified (print_weapons/armor/magic.py)
+- Shop inventories extracted (print_shops.py)
+- Element bitfield fully decoded (Status/Poison/Time/Death/Fire/Ice/Lit/Earth)
 
 ### In Progress 🔄
 - Unknown fields in monster stats (5 fields remaining)
-- Complete element/family bitvector decoding
+- Shop town/type labels and clinic/caravan price slots
+- Weapon/armor category words (second word from icon tile)
 
 ### TODO ⏸️
-- Dialog dumper that walks the pointer table (numbered dialog entries)
+- Item/equipment/magic prices
+- Enemy formations / encounter tables
+- Treasure chest contents
 - Extract music and sound effects
-- Decode remaining unknown fields in monster stats
 - Map complete game data structures in Ghidra
 
 ## Reference Materials
