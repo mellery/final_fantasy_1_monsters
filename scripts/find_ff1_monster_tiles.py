@@ -4,36 +4,45 @@ from tkinter import Image
 import numpy as np
 from PIL import Image
 from create_image_grid import create_image_grid
-
-def show_tile(tile, location=0, save_image=False):
-    tile[tile == 0] = 0  # Set 0 values to white for better visibility
-    tile[tile == 1] = 85  # Set 1 values to light gray
-    tile[tile == 2] = 170  # Set 2 values to dark gray
-    tile[tile == 3] = 255  # Set 3 values to black
-    normalized_array = tile.astype(np.uint8)  # Convert to 8-bit integers
-
-    image = Image.fromarray(normalized_array)
-
-    # image.show()
-    if save_image:
-        if not os.path.exists('output'):
-            os.makedirs('output')
-        image.save(f"./output/{str(location)}_tile.png")
-
-    return image
+from palette_manager import (
+    tile_to_image,
+    extract_palettes_from_rom,
+    get_monster_palette,
+    DEFAULT_SPRITE_PALETTES
+)
 
 
 # https://www.dustmop.io/blog/2015/04/28/nes-graphics-part-1/
-def address_to_tile(address, offset=0, save_image=False):
-    #print(address)
+def address_to_tile(address, offset=0, save_image=False, palette=None, output_dir='output'):
+    """
+    Convert NES tile data to image
+
+    Args:
+        address: 16 bytes of tile data (2 bitplanes)
+        offset: Offset for filename if saving
+        save_image: Whether to save the tile image
+        palette: Optional Palette object for color rendering
+        output_dir: Directory to save images
+
+    Returns:
+        (tile_data, image) tuple
+    """
+    # Decode tile data from 2 bitplanes to 2-bit indices (0-3)
     tile = np.zeros((8, 8), dtype=int)
     for i in range(8):
-        lower = address[i] 
+        lower = address[i]
         upper = address[i + 8]
         for j in range(8):
             tile[i, j] = ((lower >> (7 - j)) & 1) + (((upper >> (7 - j)) & 1) << 1)
-    #print(tile)
-    image = show_tile(tile, offset, save_image)
+
+    # Convert to image (with or without palette)
+    image = tile_to_image(tile, palette)
+
+    if save_image:
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        image.save(f"./{output_dir}/{str(offset)}_tile.png")
+
     return tile, image
 
 
@@ -58,11 +67,43 @@ def minimal_difference_pair(n):
     return min(pairs, key=lambda x: abs(x[0] - x[1]))
 
 def main():
-    rom_filename = sys.argv[1] if len(sys.argv) > 1 else 'Final Fantasy (USA).nes'
+    # Parse command line options
+    use_color = '--color' in sys.argv or '-c' in sys.argv
+    palette_offset = None
+
+    # Find ROM filename (first non-option argument)
+    rom_filename = '../roms/Final Fantasy (USA).nes'
+    for i, arg in enumerate(sys.argv[1:], 1):
+        if not arg.startswith('-') and not (i > 1 and sys.argv[i-1] == '--palette-offset'):
+            rom_filename = arg
+            break
+
+    # Check for custom palette offset
+    for i, arg in enumerate(sys.argv):
+        if arg == '--palette-offset' and i + 1 < len(sys.argv):
+            palette_offset = int(sys.argv[i + 1], 16)
 
     try:
         # Open the file in binary mode
         offset = 0
+        with open(rom_filename, 'rb') as file:
+            rom_data = file.read()
+
+        # Extract palettes if color mode enabled
+        palette_set = None
+        if use_color:
+            if palette_offset is not None:
+                print(f"Extracting palettes from ROM offset 0x{palette_offset:X}")
+                palette_set = extract_palettes_from_rom(rom_data, palette_offset, count=4)
+            else:
+                print("Using default sprite palettes")
+                palette_set = DEFAULT_SPRITE_PALETTES
+
+            print(f"Loaded {len(palette_set)} palettes:")
+            for i, pal in enumerate(palette_set.palettes):
+                print(f"  Palette {i}: {pal}")
+
+        # Re-open for tile reading
         with open(rom_filename, 'rb') as file:
             # Read the entire file as bytes
             #file_bytes = file.read()
@@ -72,17 +113,22 @@ def main():
             file.seek(start_loc)
 
             images = []
+            monster_id = 0  # Track which monster we're processing
 
             while chunk := file.read(16):  # Read 16 bytes at a time
                 address = []
-                
+
                 for b in chunk:
                     address.append(b)
-                #print(address)
-                address_to_tile(address, offset)
-                offset += 16
-                tile, image = address_to_tile(address, offset)
+
+                # Get palette for this monster if using color
+                palette = None
+                if use_color and palette_set:
+                    palette = get_monster_palette(monster_id, palette_set)
+
+                tile, image = address_to_tile(address, offset, palette=palette)
                 images.append(image)
+                offset += 16
 
             print(f"read {len(images)} tiles")
             grid_size = minimal_difference_pair(len(images))

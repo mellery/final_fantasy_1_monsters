@@ -174,3 +174,5 @@ cython_debug/
 
 # Output folder for generated files
 output/
+
+finalfantasy.rep/
