@@ -164,17 +164,18 @@ Custom scripts for automated extraction and analysis:
 - Shop inventories extracted (print_shops.py)
 - Item prices extracted and verified (print_prices.py)
 - Treasure chest contents extracted (print_treasure.py; item chests verified)
+- Enemy formations extracted and verified (print_formations.py)
 - Monster weak/resist decoded with the element bitfield (print_monsters.py)
 - Element bitfield fully decoded (Status/Poison/Time/Death/Fire/Ice/Lit/Earth)
 
 ### In Progress 🔄
 - Unknown fields in monster stats (5 fields remaining)
+- Encounter zone table (which formations spawn in each map area)
 - Treasure gold-chest amounts (ids 0x6c-0xff) and the 0x12-0x15 special items
 - Shop town/type labels and clinic/caravan price slots
 - Weapon/armor category words (second word from icon tile)
 
 ### TODO ⏸️
-- Enemy formations / encounter tables
 - Character class / level-up / EXP tables
 - Maps (RLE-compressed overworld + town/dungeon)
 - Extract music and sound effects

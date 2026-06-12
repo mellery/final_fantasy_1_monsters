@@ -145,6 +145,11 @@ spell level. Verified by the 'Power' item's 12345 placeholder and consumable pri
 (weapons/armor/quest/consumables) decode to verified names; gold chests are
 flagged by id. Use `--items` to list only item chests.
 
+#### `scripts/print_formations.py` ⭐
+**Purpose**: Decode the 128 enemy formations (encounter battle groups) at
+0x2c400 - which monsters appear together, quantities, type, surprise, no-run.
+Verified against known FF1 encounters (3-5 IMP first battle, the Fiends, Chaos).
+
 #### `scripts/item_names.py`
 **Purpose**: Shared helpers - weapon/armor/magic/consumable name extraction,
 the unified item-id map, prices, gold-name strings, and element/family/target
@@ -185,6 +190,16 @@ bitfield decoding. Imported by the print_* scripts above.
 - **Chest Contents**: 0x3f110, flat array of 256 item ids (one byte per chest).
   Item ids 0x01-0x6b decode to verified names; ids 0x6c-0xff are gold chests
   whose exact amount is not yet decoded.
+
+### Encounters
+- **Formation Table**: 0x2c400, 128 entries x 16 bytes. Format (from the
+  Entroper/FF1Disassembly "some formats.txt"): byte0 hi nibble = type
+  (0=9small,1=4large,2=mixed,3=fiend,4=chaos); bytes 2-5 = enemy ids;
+  bytes 6-9 = quantity (hi nibble min, lo nibble max); byteC = surprise rate;
+  byteD bit0 = no-run; bytes E-F = "formation B" alt quantities for slots 0-1.
+  Verified: formation 1 = 3-5 IMP, 116-119 = the four Fiends, 124 = CHAOS.
+- **Encounter zone table** (which formations spawn in each map area) is a
+  separate structure, not yet located.
 
 ### Element bitfield (weapons, magic, monster weak/resist)
 - 0x01 Status, 0x02 Poison, 0x04 Time, 0x08 Death,
