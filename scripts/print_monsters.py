@@ -6,29 +6,32 @@ from item_names import decode_bits, ELEMENTS, FAMILIES
 
 @dataclass
 class MonsterStats:
+    # Field meanings from the FF1 disassembly (some formats.txt, "Enemy data").
     exp: int
     gold: int
     HP: int
     morale: int
-    unknown1: int  # ai?
-    unknown2: int  # evade?
-    absorb: int
-    hits: int
-    unknown5: int  # hit rate?
-    dmg: int
-    unknown6: int  # crit rate?
-    unknown7: int  # ?
-    unknown8: int  # attack ailment?
+    ai: int          # AI script index (0xff = none); see print_ai.py
+    agility: int
+    defense: int     # damage absorbed
+    hits: int        # number of attacks
+    hit_rate: int
+    strength: int    # attack power
+    crit_rate: int
+    unknown_E: int   # byte E - still undocumented
+    ailment: int     # attack-inflicted status ailment
     family_group: int
-    unknown10: int  # magic def?
+    mag_def: int
     element_weak: int
     element_resist: int
 
     def __str__(self):
+        ai = f"ai{self.ai}" if self.ai != 0xff else "no AI"
         return (
-            f"  family: {decode_bits(self.family_group, FAMILIES)}\n"
+            f"  family: {decode_bits(self.family_group, FAMILIES)}\t{ai}\n"
             f"  EXP:{self.exp} \t GLD: {self.gold} \t HP: {self.HP}\n"
-            f"  ABS: {self.absorb} \t HIT: {self.hits} \t DMG: {self.dmg}\n"
+            f"  DEF: {self.defense} \t HIT: {self.hits} \t STR: {self.strength}"
+            f" \t AGI: {self.agility} \t MDEF: {self.mag_def}\n"
             f"  WEAK: {decode_bits(self.element_weak, ELEMENTS)}"
             f"\tRESIST: {decode_bits(self.element_resist, ELEMENTS)}\n"
 

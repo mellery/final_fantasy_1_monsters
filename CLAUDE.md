@@ -150,6 +150,12 @@ flagged by id. Use `--items` to list only item chests.
 0x2c400 - which monsters appear together, quantities, type, surprise, no-run.
 Verified against known FF1 encounters (3-5 IMP first battle, the Fiends, Chaos).
 
+#### `scripts/print_ai.py` ⭐
+**Purpose**: Decode enemy AI scripts (lut_EnemyAi at 0x31030, 16 bytes each) -
+which spells (8 slots) and special skills (4 slots) each monster casts, and the
+rates. Monster stat byte 7 = AI index. Skills index the extended magic table at
+(skill+0x42). Verified: Tiamat breathes all 4 elements, Kary casts FIR2/FIR3.
+
 #### `scripts/print_domains.py` ⭐
 **Purpose**: Decode the 128 encounter zones (battle domains) at 0x2c000 - the
 "where enemies appear" table. Each zone lists its 8 possible formations expanded
