@@ -4,10 +4,10 @@ This is the "where do enemies appear" table. The overworld grid and each
 dungeon map reference a domain index (0-127); the domain lists the 8 battle
 formations that can be randomly rolled in that zone.
 
-  Battle domains: ROM offset 0x2c000, 128 domains x 8 bytes (one formation ref
+  Battle domains: ROM offset 0x2c010, 128 domains x 8 bytes (one formation ref
                   per byte). Bit 7 of a ref selects the formation's "B" variant;
-                  the low 7 bits are the formation index (into 0x2c400).
-  Map encounter rates: 0x2cc00, 64 bytes (one rate per map; separate table).
+                  the low 7 bits are the formation index (into 0x2c410).
+  Map encounter rates: 0x2cc10, 64 bytes (one rate per map; separate table).
 
 Offsets confirmed by the Entroper/FF1Disassembly bin layout
 (0B_8000_battledomains.bin, 0B_8400_battleformations.bin). Verified by
@@ -16,9 +16,9 @@ coherence: e.g. domain 1 is the endgame zone (WarMECH, NITEMARE, EVILMAN).
 import sys
 from monster_names import get_names
 
-DOMAINS = 0x2c000
+DOMAINS = 0x2c010
 NUM_DOMAINS = 128
-FORMATIONS = 0x2c400
+FORMATIONS = 0x2c410
 
 
 def main():

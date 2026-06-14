@@ -1,6 +1,6 @@
 """Print enemy formations (encounter battle groups) from Final Fantasy (USA).
 
-Formation table: ROM offset 0x2c400, 128 entries x 16 bytes. Format from the
+Formation table: ROM offset 0x2c410, 128 entries x 16 bytes. Format from the
 FF1 disassembly (Entroper/FF1Disassembly, "some formats.txt"):
 
   byte 0   : high nibble = battle type (0=9 small, 1=4 large, 2=mixed,
@@ -18,7 +18,7 @@ Verified: formation 1 is 3-5 IMP (the first overworld battle).
 import sys
 from monster_names import get_names
 
-FORMATIONS = 0x2c400
+FORMATIONS = 0x2c410
 COUNT = 128
 SIZE = 16
 TYPES = {0: '9-small', 1: '4-large', 2: 'mixed', 3: 'fiend', 4: 'chaos'}
