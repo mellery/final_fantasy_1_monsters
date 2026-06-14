@@ -150,6 +150,14 @@ flagged by id. Use `--items` to list only item chests.
 0x2c400 - which monsters appear together, quantities, type, surprise, no-run.
 Verified against known FF1 encounters (3-5 IMP first battle, the Fiends, Chaos).
 
+#### `scripts/print_palettes.py` / `colorize_monster.py` ⭐
+**Purpose**: View monster sprites in color. Battle palettes are at 0x30f30
+(64 x 4 NES colors); a monster's palette comes from the first formation that
+uses it (formation byte D selects palette A/B per slot - see ff1_palettes.py).
+`print_palettes.py` lists each monster's colors; `colorize_monster.py` recolors
+a grayscale sprite PNG (from find_ff1_monster_tiles.py) using that palette.
+Verified: Chaos renders gold/purple, Kraken purple tentacles, FrWOLF icy blue.
+
 #### `scripts/print_ai.py` ⭐
 **Purpose**: Decode enemy AI scripts (lut_EnemyAi at 0x31030, 16 bytes each) -
 which spells (8 slots) and special skills (4 slots) each monster casts, and the
