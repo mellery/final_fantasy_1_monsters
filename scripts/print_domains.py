@@ -1,8 +1,18 @@
 """Print encounter zones (battle domains) from Final Fantasy (USA).
 
-This is the "where do enemies appear" table. The overworld grid and each
-dungeon map reference a domain index (0-127); the domain lists the 8 battle
-formations that can be randomly rolled in that zone.
+This is the "where do enemies appear" table. Each zone (domain) lists 8 battle
+formations; GetBattleFormation picks one via a weighted RNG when an encounter
+triggers. Which zone applies is COMPUTED from location (no lookup table) - per
+the encounter code in bank_0F.asm ($C537 land, line 3304 standard maps):
+
+  Overworld land : domain = (playerY>>5)*8 + (playerX>>5)   -> 0-63 (8x8 grid,
+                   each cell = 32x32 overworld tiles)
+  Overworld river: domain 0x40 (upper map half) / 0x41 (lower half)
+  Overworld sea  : domain 0x42
+  Standard maps  : domain = map_id + 0x40                    -> 64-127
+
+So domains 0-63 are the overworld grid; 64-127 are the 64 standard maps (towns/
+dungeons), and 64-66 double as the overworld river/sea zones.
 
   Battle domains: ROM offset 0x2c010, 128 domains x 8 bytes (one formation ref
                   per byte). Bit 7 of a ref selects the formation's "B" variant;
@@ -11,7 +21,8 @@ formations that can be randomly rolled in that zone.
 
 Offsets confirmed by the Entroper/FF1Disassembly bin layout
 (0B_8000_battledomains.bin, 0B_8400_battleformations.bin). Verified by
-coherence: e.g. domain 1 is the endgame zone (WarMECH, NITEMARE, EVILMAN).
+coherence: domains 18/20/24 are the imp-filled Coneria start, domain 115 is
+the Sky Castle (WarMECH).
 """
 import sys
 from monster_names import get_names
@@ -19,6 +30,19 @@ from monster_names import get_names
 DOMAINS = 0x2c010
 NUM_DOMAINS = 128
 FORMATIONS = 0x2c410
+
+
+def zone_location(d):
+    """What location uses this domain (per bank_0F.asm encounter code)."""
+    if d < 0x40:
+        return f"OW grid col{d & 7},row{d >> 3}"
+    if d == 0x40:
+        return "OW river-N / map 0"
+    if d == 0x41:
+        return "OW river-S / map 1"
+    if d == 0x42:
+        return "OW sea / map 2"
+    return f"map {d - 0x40}"
 
 
 def main():
@@ -54,7 +78,7 @@ def main():
     for d in range(NUM_DOMAINS):
         refs = data[DOMAINS + d * 8: DOMAINS + d * 8 + 8]
         formations = ' '.join(formation_summary(r) for r in refs)
-        print(f"zone {d:3d}: {formations}")
+        print(f"zone {d:3d} [{zone_location(d):18}]: {formations}")
 
 
 if __name__ == "__main__":

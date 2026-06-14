@@ -209,9 +209,18 @@ bitfield decoding. Imported by the print_* scripts above.
   Verified: zone 1 = endgame (WarMECH), zones 29-30 = Coneria start (IMP/etc).
 - **Map encounter rates**: 0x2cc00, 64 bytes (one rate per map; separate).
 - Offsets confirmed by Entroper/FF1Disassembly bin names (0B_8000_battledomains,
-  0B_8400_battleformations, 0B_8C00_mapencounterrates). Bank 0B: $8000 = file 0x2c000.
-- **Location->zone mapping** (overworld grid + per-dungeon domain assignment)
-  is the remaining geographic link, not yet located.
+  0B_8400_battleformations, 0B_8C00_mapencounterrates). Note the iNES 16-byte
+  header: file = 0x10 + bank*0x4000 + (CPU-0x8000), so bank 0B $8000 = file 0x2c010.
+- **Location -> zone mapping** (computed in bank_0F.asm, not a table):
+  - Overworld land: domain = (playerY>>5)*8 + (playerX>>5) -> 0-63 (8x8 grid,
+    each cell = 32x32 overworld tiles)
+  - Overworld river: domain 0x40 (upper map half) / 0x41 (lower half)
+  - Overworld sea: domain 0x42
+  - Standard maps (towns/dungeons): domain = map_id + 0x40 -> 64-127
+  Verified: sea domain 0x42 = SAHAG/SHARK/pirates, river = HYDRA/GATOR, OW grid
+  cells 18/20/24 = imps (Coneria), map 51 (domain 115) = Sky Castle (WarMECH).
+- GetBattleFormation weights the 8 formations per domain via a 64-byte RNG-index
+  table (lut_FormationWeight in bank 0F), so they are not equally likely.
 
 ### Element bitfield (weapons, magic, monster weak/resist)
 - 0x01 Status, 0x02 Poison, 0x04 Time, 0x08 Death,
