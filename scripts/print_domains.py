@@ -32,17 +32,38 @@ NUM_DOMAINS = 128
 FORMATIONS = 0x2c410
 
 
+# Standard map id -> name (from the FF1Randomizer MapId enum, which is built on
+# this same disassembly). Verified: map 51 = Sky Palace 5F, where WarMECH lives.
+MAP_NAMES = {
+    0: 'Coneria Town', 1: 'Pravoka', 2: 'Elfland', 3: 'Melmond',
+    4: 'Crescent Lake', 5: 'Gaia', 6: 'Onrac', 7: 'Lefein',
+    8: 'Coneria Castle 1F', 9: 'Elfland Castle', 10: 'Northwest Castle',
+    11: 'Castle Ordeals 1F', 12: 'Temple of Fiends', 13: 'Earth Cave B1',
+    14: 'Gurgu Volcano B1', 15: 'Ice Cave B1', 16: 'Cardia', 17: 'Bahamut Cave B1',
+    18: 'Waterfall', 19: 'Dwarf Cave', 20: "Matoya's Cave", 21: "Sarda's Cave",
+    22: 'Marsh Cave B1', 23: 'Mirage Tower 1F', 24: 'Coneria Castle 2F',
+    25: 'Castle Ordeals 2F', 26: 'Castle Ordeals 3F', 27: 'Marsh Cave B2',
+    28: 'Marsh Cave B3', 29: 'Earth Cave B2', 30: 'Earth Cave B3',
+    31: 'Earth Cave B4', 32: 'Earth Cave B5', 33: 'Gurgu Volcano B2',
+    34: 'Gurgu Volcano B3', 35: 'Gurgu Volcano B4', 36: 'Gurgu Volcano B5',
+    37: 'Ice Cave B2', 38: 'Ice Cave B3', 39: 'Bahamut Cave B2',
+    40: 'Mirage Tower 2F', 41: 'Mirage Tower 3F', 42: 'Sea Shrine B5',
+    43: 'Sea Shrine B4', 44: 'Sea Shrine B3', 45: 'Sea Shrine B2',
+    46: 'Sea Shrine B1', 47: 'Sky Palace 1F', 48: 'Sky Palace 2F',
+    49: 'Sky Palace 3F', 50: 'Sky Palace 4F', 51: 'Sky Palace 5F',
+    52: 'ToF Revisited 1F', 53: 'ToF Revisited 2F', 54: 'ToF Revisited 3F',
+    55: 'ToFR Earth', 56: 'ToFR Fire', 57: 'ToFR Water', 58: 'ToFR Air',
+    59: 'ToFR Chaos', 60: "Titan's Tunnel",
+}
+
+
 def zone_location(d):
     """What location uses this domain (per bank_0F.asm encounter code)."""
     if d < 0x40:
         return f"OW grid col{d & 7},row{d >> 3}"
-    if d == 0x40:
-        return "OW river-N / map 0"
-    if d == 0x41:
-        return "OW river-S / map 1"
-    if d == 0x42:
-        return "OW sea / map 2"
-    return f"map {d - 0x40}"
+    mname = MAP_NAMES.get(d - 0x40, f"map {d - 0x40}")
+    ow = {0x40: 'OW river-N', 0x41: 'OW river-S', 0x42: 'OW sea'}.get(d)
+    return f"{ow} / {mname}" if ow else mname
 
 
 def main():
@@ -78,7 +99,7 @@ def main():
     for d in range(NUM_DOMAINS):
         refs = data[DOMAINS + d * 8: DOMAINS + d * 8 + 8]
         formations = ' '.join(formation_summary(r) for r in refs)
-        print(f"zone {d:3d} [{zone_location(d):18}]: {formations}")
+        print(f"zone {d:3d} [{zone_location(d):24}]: {formations}")
 
 
 if __name__ == "__main__":

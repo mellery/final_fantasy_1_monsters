@@ -218,7 +218,11 @@ bitfield decoding. Imported by the print_* scripts above.
   - Overworld sea: domain 0x42
   - Standard maps (towns/dungeons): domain = map_id + 0x40 -> 64-127
   Verified: sea domain 0x42 = SAHAG/SHARK/pirates, river = HYDRA/GATOR, OW grid
-  cells 18/20/24 = imps (Coneria), map 51 (domain 115) = Sky Castle (WarMECH).
+  cells 18/20/24 = imps (Coneria), Earth Cave B1 (map 13) = COBRA/OGRE/MUMMY,
+  Sky Palace 5F (map 51, domain 115) = WarMECH, ToFR Earth (map 55) = golems/EARTH.
+- Standard map id -> name from the FF1Randomizer MapId enum (built on this same
+  disassembly); 0-7 towns, 8-60 castles/dungeon floors, 61-63 unused. Labeled in
+  print_domains.py (MAP_NAMES).
 - GetBattleFormation weights the 8 formations per domain via a 64-byte RNG-index
   table (lut_FormationWeight in bank 0F), so they are not equally likely.
 

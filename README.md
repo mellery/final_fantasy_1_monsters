@@ -167,12 +167,12 @@ Custom scripts for automated extraction and analysis:
 - Enemy formations extracted and verified (print_formations.py)
 - Encounter zones / battle domains extracted and verified (print_domains.py)
 - Location->zone mapping decoded (overworld 8x8 grid + map_id+0x40, from bank_0F.asm)
+- Standard-map zones labeled by place name (print_domains.py MAP_NAMES)
 - Monster weak/resist decoded with the element bitfield (print_monsters.py)
 - Element bitfield fully decoded (Status/Poison/Time/Death/Fire/Ice/Lit/Earth)
 
 ### In Progress 🔄
 - Unknown fields in monster stats (5 fields remaining)
-- Map id -> name labels (to label standard-map zones by place)
 - Treasure gold-chest amounts (ids 0x6c-0xff) and the 0x12-0x15 special items
 - Shop town/type labels and clinic/caravan price slots
 - Weapon/armor category words (second word from icon tile)
