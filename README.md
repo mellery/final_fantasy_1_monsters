@@ -183,7 +183,7 @@ Custom scripts for automated extraction and analysis:
 - All 61 standard maps rendered in full color (render_standard_map.py)
 
 ### In Progress 🔄
-- Treasure gold-chest amounts (ids 0x6c-0xff) and the 0x12-0x15 special items
+- A few high-range gold-chest ids (0xb0+) not in the gold-name table
 - Shop town/type labels and clinic/caravan price slots
 - Weapon/armor category words (second word from icon tile)
 

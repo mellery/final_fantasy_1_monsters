@@ -23,7 +23,7 @@ from nes_color_converter import NES_PALETTE
 from print_domains import MAP_NAMES
 
 SMPTR, TILESETS, TSA, ATTR, CHRBASE, PAL = 0x10010, 0x2cd0, 0x1010, 0x410, 0xc010, 0x2010
-PROP, MAPOBJ, TREASURE = 0x810, 0x3410, 0x3f110
+PROP, MAPOBJ, TREASURE = 0x810, 0x3410, 0x3110  # lut_Treasure = $B100 bank 0
 MAP_W = MAP_H = 64
 
 try:

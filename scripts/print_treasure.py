@@ -1,21 +1,20 @@
 """Print treasure chest contents from Final Fantasy (USA).
 
-The chest-contents table is a flat array of 256 item ids at ROM offset 0x3f110
-(one byte per chest). Item ids 0x01-0x6b are items/equipment (the shop/item
-namespace) and decode to verified names. Ids 0x6c-0xff are gold chests; their
-exact gold amount is not yet decoded (only 68 gold-name strings exist but the
-chests use 148 distinct ids in that range), so they are shown by raw id.
+The chest-contents table (lut_Treasure = $B100 in bank 0) is a flat array of
+256 item ids at ROM offset 0x3110 (one byte per chest). Item ids 0x01-0x6b are
+items/equipment and decode to verified names; ids 0x6c-0xaf are gold chests
+(amount from the gold-name strings).
 
-Verified: all 17 quest items (LUTE, ADAMANT, RUBY, CUBE, CROWN, ...) appear in
-exactly one chest each, and the legendary weapons (Masamune, Excalibur, Defense,
-CatClaw, Vorpal, Thor, Bane, Katana, Ribbon) each occupy one chest.
+Verified against the mikesrpgcenter dungeon maps: e.g. Earth Cave chests
+(1975 G, Pure, 795 G, 880 G, Heal, Coral Sword, Cabin, ...) match exactly.
 
 Pass --items to list only the item chests (hide gold).
 """
 import sys
-from item_names import get_weapon_names, get_armor_names, get_misc_names
+from item_names import (get_weapon_names, get_armor_names, get_misc_names,
+                        get_gold_names)
 
-TREASURE = 0x3f110
+TREASURE = 0x3110
 COUNT = 256
 
 
@@ -30,8 +29,8 @@ def main():
         print(f"Error: ROM file '{rom}' not found")
         sys.exit(1)
 
-    weapons, armor, misc = (get_weapon_names(data), get_armor_names(data),
-                            get_misc_names(data))
+    weapons, armor, misc, gold = (get_weapon_names(data), get_armor_names(data),
+                                  get_misc_names(data), get_gold_names(data))
 
     def item_name(b):
         """Name for an item-range id (0x01-0x6b), or None if it's a gold chest."""
@@ -60,7 +59,8 @@ def main():
         else:
             gold_chests += 1
             if not items_only:
-                print(f"chest {i:3d}: gold chest (id 0x{b:02x}, amount not decoded)")
+                amount = gold[b - 0x6c] if 0x6c <= b < 0x6c + len(gold) else f'id 0x{b:02x}'
+                print(f"chest {i:3d}: {amount}")
 
     print(f"\n{items} item chests, {gold_chests} gold chests, {empty} empty")
 

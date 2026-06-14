@@ -145,7 +145,7 @@ appear. Clinic/caravan price slots and town/shop-type grouping are not decoded.
 spell level. Verified by the 'Power' item's 12345 placeholder and consumable prices.
 
 #### `scripts/print_treasure.py` ⭐
-**Purpose**: Decode the 256-chest contents table at 0x3f110. Item chests
+**Purpose**: Decode the 256-chest contents table at 0x3110 (lut_Treasure). Item chests
 (weapons/armor/quest/consumables) decode to verified names; gold chests are
 flagged by id. Use `--items` to list only item chests.
 
@@ -243,7 +243,7 @@ attr(+0x300), palette(+0x380, 4x4 NES colors). OW BG CHR bank 02 (file 0x8010).
   8000/20000/45000/60000 for levels 1-8.
 
 ### Treasure
-- **Chest Contents**: 0x3f110, flat array of 256 item ids (one byte per chest).
+- **Chest Contents**: 0x3110 (lut_Treasure, $B100 bank 0), flat array of 256 item ids (one byte per chest).
   Item ids 0x01-0x6b decode to verified names; ids 0x6c-0xff are gold chests
   whose exact amount is not yet decoded.
 
