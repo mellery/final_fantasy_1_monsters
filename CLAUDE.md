@@ -158,6 +158,14 @@ uses it (formation byte D selects palette A/B per slot - see ff1_palettes.py).
 a grayscale sprite PNG (from find_ff1_monster_tiles.py) using that palette.
 Verified: Chaos renders gold/purple, Kraken purple tentacles, FrWOLF icy blue.
 
+#### `scripts/print_sprite_groups.py`
+**Purpose**: Map monsters to their sprite CHR page (low nibble of formation
+byte 0) and palette. Page -> ROM: page 0-7 at 0x1c010+page*0x800, page 8-15 at
+0x20010+(page-8)*0x800 (each 0x800 = backdrop row + 2 enemy images, 4x4 small /
+6x6 large). Verified thematic grouping (page 0 = imps/wolves/giants, 13-15 =
+fiends/Chaos). Full per-monster sprite extraction (image-0/1 split + size) is a
+remaining sprite-extractor task; today colorize_monster.py handles named bosses.
+
 #### `scripts/print_ai.py` ⭐
 **Purpose**: Decode enemy AI scripts (lut_EnemyAi at 0x31030, 16 bytes each) -
 which spells (8 slots) and special skills (4 slots) each monster casts, and the
