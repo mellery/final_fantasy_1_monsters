@@ -172,13 +172,12 @@ Custom scripts for automated extraction and analysis:
 - Monster stat fields identified (AI/agility/defense/hit/strength/crit/ailment/magdef)
 - Enemy AI scripts extracted - spells & skills each monster uses (print_ai.py)
 - Monster battle palettes mapped (print_palettes.py)
-- All 114 regular monster sprites extracted in full color (extract_monster_sprites.py);
-  fiends/Chaos via colorize_monster.py
+- All 123 monster sprites extracted in full color including fiends/Chaos,
+  black background like the game (extract_monster_sprites.py)
 - Element bitfield fully decoded (Status/Poison/Time/Death/Fire/Ice/Lit/Earth)
 
 ### In Progress 🔄
 - Monster stat byte E (one field still undocumented)
-- Fiend/Chaos sprites into the main extractor (currently a separate TSA path)
 - Treasure gold-chest amounts (ids 0x6c-0xff) and the 0x12-0x15 special items
 - Shop town/type labels and clinic/caravan price slots
 - Weapon/armor category words (second word from icon tile)

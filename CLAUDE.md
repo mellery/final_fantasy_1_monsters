@@ -159,14 +159,14 @@ a grayscale sprite PNG (from find_ff1_monster_tiles.py) using that palette.
 Verified: Chaos renders gold/purple, Kraken purple tentacles, FrWOLF icy blue.
 
 #### `scripts/extract_monster_sprites.py` ⭐
-**Purpose**: Extract every regular monster sprite in full color. Each monster
-maps to a sprite slot: CHR page = formation byte0 low nibble; gfx = (byte1 >>
-2*slot) & 3, where bit0 = size (0=small 4x4, 1=medium 6x6) and bit1 = image.
-Page -> ROM: 0-7 at 0x1c000+page*0x800, 8+ at 0x20000+(page-8)*0x800; sprite
-offsets within page: gfx0 +0x130, gfx2 +0x230 (small), gfx1 +0x330, gfx3 +0x570
-(medium). Colors via the monster's battle palette. Writes 114 sprites to
-output/monsters/. Verified visually (imps, wolves, dragons, etc. all correct).
-The 9 fiend/Chaos sprites (pages 13-15, TSA layout) use colorize_monster.py.
+**Purpose**: Extract all 123 monster sprites in full color (black background,
+like the game). Regular monsters map to a sprite slot: CHR page = formation
+byte0 low nibble; gfx = (byte1 >> 2*slot) & 3, where bit0 = size (0=small 4x4,
+1=medium 6x6) and bit1 = image. Page -> ROM: 0-7 at 0x1c000+page*0x800, 8+ at
+0x20000+(page-8)*0x800; offsets within page: gfx0 +0x130, gfx2 +0x230 (small),
+gfx1 +0x330, gfx3 +0x570 (medium). The fiends/Chaos (ids 119-127) use a TSA
+grid layout (BOSS_SPRITES). Colored via each monster's battle palette. Writes
+to output/monsters/ as NNN_NAME.png. Verified visually across all pages.
 
 #### `scripts/print_sprite_groups.py`
 **Purpose**: Report each monster's sprite CHR page and palette (the grouping
