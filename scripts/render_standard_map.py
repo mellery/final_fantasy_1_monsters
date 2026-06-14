@@ -24,6 +24,7 @@ from print_domains import MAP_NAMES
 
 SMPTR, TILESETS, TSA, ATTR, CHRBASE, PAL = 0x10010, 0x2cd0, 0x1010, 0x410, 0xc010, 0x2010
 PROP, MAPOBJ, TREASURE = 0x810, 0x3410, 0x3110  # lut_Treasure = $B100 bank 0
+OBJGFX, OBJCHR = 0x2e10, 0xa210  # lut_MapObjGfx ($AE00 bank0), lut_MapObjCHR ($A200 bank2)
 MAP_W = MAP_H = 64
 
 try:
@@ -106,17 +107,35 @@ def find_npcs(data, mapid):
     return out
 
 
+def npc_sprite(data, oid, sprite_pal):
+    """16x16 RGBA standing sprite for a map object (tiles 0,1,4,5 of its graphic)."""
+    base = OBJCHR + data[OBJGFX + oid] * 0x100
+    img = Image.new('RGBA', (16, 16))
+    px = img.load()
+    for qi, ti in enumerate((0, 1, 4, 5)):
+        t = tile_pixels(data, base, ti)
+        ox, oy = (qi % 2) * 8, (qi // 2) * 8
+        for y in range(8):
+            for x in range(8):
+                v = t[y, x]
+                if v:  # color 0 = transparent so the map shows through
+                    px[ox + x, oy + y] = sprite_pal[v] + (255,)
+    return img
+
+
 def annotate(img, data, mapid, item_name):
-    """Overlay chest (yellow, labeled with contents) and NPC (cyan) markers."""
+    """Overlay chests (yellow box + contents label) and NPCs (their actual sprite)."""
     d = ImageDraw.Draw(img)
     for mx, my, tid in find_chests(data, mapid):
         x, y = mx * 16, my * 16
         d.rectangle([x, y, x + 15, y + 15], outline=(255, 230, 0), width=2)
         d.text((x + 1, y + 16), item_name(data[TREASURE + tid]), fill=(255, 230, 0), font=_FONT)
+    # map sprite palette 0 (bytes 0x10-0x13 of the per-map palette)
+    po = PAL + mapid * 0x30 + 0x10
+    sprite_pal = [NES_PALETTE[data[po + c] & 0x3f] for c in range(4)]
     for oid, mx, my in find_npcs(data, mapid):
-        x, y = mx * 16, my * 16
-        d.rectangle([x, y, x + 15, y + 15], outline=(0, 230, 255), width=2)
-        d.text((x + 2, y + 2), str(oid), fill=(0, 230, 255), font=_FONT)
+        spr = npc_sprite(data, oid, sprite_pal)
+        img.paste(spr, (mx * 16, my * 16), spr)
     return img
 
 
@@ -128,18 +147,15 @@ def main():
     with open(rom, 'rb') as f:
         data = f.read()
 
-    from item_names import build_item_id_map, get_gold_names
+    from item_names import build_item_id_map, get_price
     id_map = build_item_id_map(data)
-    gold = get_gold_names(data)
 
     def item_name(iid):
-        # Treasure namespace: 0x01-0x6b items, 0x6c-0xaf gold, 0xb0+ higher gold
-        # (not yet decoded). NOTE: 0xb0+ is NOT magic here - that's the shop namespace.
+        # Treasure namespace: 0x01-0x6b items, 0x6c+ gold. Gold amount = the
+        # item's price (the game uses LoadPrice on the chest id for gold chests).
         if iid <= 0x6b and iid in id_map:
             return id_map[iid]
-        if 0x6c <= iid < 0x6c + len(gold):
-            return gold[iid - 0x6c]
-        return f'gold?:{iid:02x}'
+        return f'{get_price(data, iid)} G'
 
     if list_only:
         # Text dump of chests/NPCs per map, for verifying contents against a guide

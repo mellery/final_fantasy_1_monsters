@@ -195,11 +195,16 @@ bitfield decoding. Imported by the print_* scripts above.
 ### Map Rendering
 
 #### `scripts/render_standard_map.py` ⭐
-**Purpose**: Render all 61 standard maps (towns/castles/dungeons) to PNG.
-Pipeline: map->tileset (lut_Tilesets, 0x2cd0+map); RLE-decompress (lut_SMPtrTbl
-0x10010, entry is an offset so data=0x10010+ptr); metatile->4 CHR tiles (TSA
-512B/tileset at 0x1010+ts*512) + palette (tsa_attr 0x410+ts*128); tileset CHR
-0xc010+ts*0x800 (bank 03); map palette 0x2010+map*0x30. 64x64 metatiles -> 1024px.
+**Purpose**: Render all 61 standard maps (towns/castles/dungeons) to PNG, both
+plain (NN_Name.png) and annotated (NN_Name_annotated.png). `--list` dumps
+chests/NPCs as text. Map pipeline: map->tileset (lut_Tilesets, 0x2cd0+map);
+RLE-decompress (lut_SMPtrTbl 0x10010, entry is an offset so data=0x10010+ptr);
+metatile->4 CHR tiles (TSA 512B/tileset at 0x1010+ts*512) + palette (tsa_attr
+0x410+ts*128); tileset CHR 0xc010+ts*0x800 (bank 03); map palette 0x2010+map*0x30.
+64x64 metatiles -> 1024px. Overlay: chests from tile props (prop ssss==4, TC id
+in 2nd byte; contents from lut_Treasure 0x3110, gold amount = get_price(id));
+NPCs drawn as their actual sprite (lut_MapObjGfx 0x2e10[obj]->graphic, CHR at
+lut_MapObjCHR 0xa210+gfx*0x100, tiles 0,1,4,5, sprite palette 0).
 
 #### `scripts/render_overworld.py` ⭐
 **Purpose**: Render the 256x256 overworld to PNG (4096x4096 + preview). Rows
