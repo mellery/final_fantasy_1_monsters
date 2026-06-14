@@ -192,6 +192,25 @@ to monster names. Verified: zone 1 = endgame (WarMECH), zones 29-30 = start area
 the unified item-id map, prices, gold-name strings, and element/family/target
 bitfield decoding. Imported by the print_* scripts above.
 
+### Map Rendering
+
+#### `scripts/render_standard_map.py` ⭐
+**Purpose**: Render all 61 standard maps (towns/castles/dungeons) to PNG.
+Pipeline: map->tileset (lut_Tilesets, 0x2cd0+map); RLE-decompress (lut_SMPtrTbl
+0x10010, entry is an offset so data=0x10010+ptr); metatile->4 CHR tiles (TSA
+512B/tileset at 0x1010+ts*512) + palette (tsa_attr 0x410+ts*128); tileset CHR
+0xc010+ts*0x800 (bank 03); map palette 0x2010+map*0x30. 64x64 metatiles -> 1024px.
+
+#### `scripts/render_overworld.py` ⭐
+**Purpose**: Render the 256x256 overworld to PNG (4096x4096 + preview). Rows
+RLE-compressed, pointer table lut_OWPtrTbl at 0x4010 (bank 01). OW tileset is one
+0x400 block at file 0x10: prop(+0), TSA ul/ur/dl/dr(+0x100/180/200/280),
+attr(+0x300), palette(+0x380, 4x4 NES colors). OW BG CHR bank 02 (file 0x8010).
+
+### Map / RLE format
+- RLE: 0x00-0x7f = one metatile; 0x80-0xfe = run (tile=b&0x7f, next byte=count,
+  0->256); 0xff = terminator. See DecompressMap in bank_0F.asm.
+
 ## Important ROM Offsets
 
 ### Monster Data

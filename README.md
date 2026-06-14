@@ -179,6 +179,8 @@ Custom scripts for automated extraction and analysis:
 - All 20 monster stat bytes identified (byte E = attack element, confirmed by
   cross-referencing gamercorner guide); print_monsters.py shows guide-style
   display values (Hit% = 84+raw/2, Eva/MagDef = raw/2, RunLv = (morale-80)/2)
+- Overworld map rendered in full color (render_overworld.py, 4096x4096)
+- All 61 standard maps rendered in full color (render_standard_map.py)
 
 ### In Progress 🔄
 - Treasure gold-chest amounts (ids 0x6c-0xff) and the 0x12-0x15 special items
