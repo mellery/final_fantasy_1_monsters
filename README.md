@@ -165,12 +165,13 @@ Custom scripts for automated extraction and analysis:
 - Item prices extracted and verified (print_prices.py)
 - Treasure chest contents extracted (print_treasure.py; item chests verified)
 - Enemy formations extracted and verified (print_formations.py)
+- Encounter zones / battle domains extracted and verified (print_domains.py)
 - Monster weak/resist decoded with the element bitfield (print_monsters.py)
 - Element bitfield fully decoded (Status/Poison/Time/Death/Fire/Ice/Lit/Earth)
 
 ### In Progress 🔄
 - Unknown fields in monster stats (5 fields remaining)
-- Encounter zone table (which formations spawn in each map area)
+- Location->zone mapping (overworld grid + per-dungeon domain assignment)
 - Treasure gold-chest amounts (ids 0x6c-0xff) and the 0x12-0x15 special items
 - Shop town/type labels and clinic/caravan price slots
 - Weapon/armor category words (second word from icon tile)

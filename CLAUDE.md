@@ -150,6 +150,11 @@ flagged by id. Use `--items` to list only item chests.
 0x2c400 - which monsters appear together, quantities, type, surprise, no-run.
 Verified against known FF1 encounters (3-5 IMP first battle, the Fiends, Chaos).
 
+#### `scripts/print_domains.py` ⭐
+**Purpose**: Decode the 128 encounter zones (battle domains) at 0x2c000 - the
+"where enemies appear" table. Each zone lists its 8 possible formations expanded
+to monster names. Verified: zone 1 = endgame (WarMECH), zones 29-30 = start area.
+
 #### `scripts/item_names.py`
 **Purpose**: Shared helpers - weapon/armor/magic/consumable name extraction,
 the unified item-id map, prices, gold-name strings, and element/family/target
@@ -198,8 +203,15 @@ bitfield decoding. Imported by the print_* scripts above.
   bytes 6-9 = quantity (hi nibble min, lo nibble max); byteC = surprise rate;
   byteD bit0 = no-run; bytes E-F = "formation B" alt quantities for slots 0-1.
   Verified: formation 1 = 3-5 IMP, 116-119 = the four Fiends, 124 = CHAOS.
-- **Encounter zone table** (which formations spawn in each map area) is a
-  separate structure, not yet located.
+- **Battle Domains (encounter zones)**: 0x2c000, 128 zones x 8 bytes. Each byte
+  is a formation ref; bit 7 selects the formation's B variant, low 7 bits are
+  the formation index. The overworld grid and dungeon maps reference a domain.
+  Verified: zone 1 = endgame (WarMECH), zones 29-30 = Coneria start (IMP/etc).
+- **Map encounter rates**: 0x2cc00, 64 bytes (one rate per map; separate).
+- Offsets confirmed by Entroper/FF1Disassembly bin names (0B_8000_battledomains,
+  0B_8400_battleformations, 0B_8C00_mapencounterrates). Bank 0B: $8000 = file 0x2c000.
+- **Location->zone mapping** (overworld grid + per-dungeon domain assignment)
+  is the remaining geographic link, not yet located.
 
 ### Element bitfield (weapons, magic, monster weak/resist)
 - 0x01 Status, 0x02 Poison, 0x04 Time, 0x08 Death,
