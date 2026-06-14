@@ -52,28 +52,32 @@ python3 print_monsters.py ../roms/Final\ Fantasy\ \(USA\).nes
 - Unpacks binary data using struct format: `'HHHBBBBBBBBBBBBBB'`
 - Outputs formatted table with all monster statistics
 
-**Key Data Structure**:
+**Key Data Structure** (all 20 bytes identified - see scripts/print_monsters.py):
 ```python
 @dataclass
 class MonsterStats:
-    exp: int          # uint16
-    gold: int         # uint16
-    HP: int           # uint16
-    morale: int       # uint8
-    unknown1: int     # uint8 - possibly AI
-    unknown2: int     # uint8 - possibly evade
-    absorb: int       # uint8
-    hits: int         # uint8
-    unknown5: int     # uint8 - possibly hit rate
-    dmg: int          # uint8
-    unknown6: int     # uint8 - possibly crit rate
-    unknown7: int     # uint8
-    unknown8: int     # uint8 - possibly attack ailment
-    family: int       # uint8 - bitvector
-    unknown10: int    # uint8 - possibly magic defense
-    weak: int         # uint8 - element bitvector
-    resist: int       # uint8 - element bitvector
+    exp: int           # uint16
+    gold: int          # uint16
+    HP: int            # uint16
+    morale: int        # uint8 - run level = (morale-80)//2
+    ai: int            # uint8 - AI script index (0xff=none); see print_ai.py
+    agility: int       # uint8 - evade; displayed as agility//2
+    defense: int       # uint8 - damage absorbed
+    hits: int          # uint8 - number of attacks
+    hit_rate: int      # uint8 - displayed hit% = 84 + hit_rate//2
+    strength: int      # uint8 - damage per hit
+    crit_rate: int     # uint8
+    attack_element: int# uint8 - element of the monster's attack (ELEMENTS bitfield);
+                       #         set only when its attack inflicts a status ailment
+    ailment: int       # uint8 - attack-inflicted status ailment
+    family: int        # uint8 - family bitvector
+    mag_def: int       # uint8 - displayed as mag_def//2
+    weak: int          # uint8 - element bitvector
+    resist: int        # uint8 - element bitvector
 ```
+Field meanings from the FF1 disassembly (some formats.txt) plus the gamercorner
+guide (guides.gamercorner.net/ff/monsters/), which confirmed the display formulas
+and let byte E be pinned as the attack element (non-zero iff a status attack).
 
 ### String and Graphics Extraction
 
@@ -370,16 +374,14 @@ python3 monster_names.py ../roms/custom.nes  # Custom ROM
 ## Known Issues & Limitations
 
 ### Unresolved Fields
-5 fields in MonsterStats remain unknown:
-- unknown1 (possibly AI/behavior)
-- unknown2 (possibly evade %)
-- unknown5 (possibly hit rate %)
-- unknown6 (possibly crit rate %)
-- unknown7, unknown8, unknown10
+All 20 MonsterStats bytes are now identified (see the struct above). The last
+"unknown" byte (E) was pinned as the attack element by cross-referencing the
+gamercorner guide. Remaining open items are the treasure gold-chest amounts
+(item ids 0x6c-0xff) and the 0x12-0x15 special item ids.
 
-### Graphics Extraction Challenges
-- CHR RAM (not CHR ROM) makes static extraction difficult
-- Sprites loaded dynamically during gameplay
+### Graphics Extraction Challenges (resolved)
+- Enemy sprite CHR is in PRG (bank 07/08, 0x1c010+), loaded to CHR RAM at battle
+- extract_monster_sprites.py decodes all 123 sprites in color (see that script)
 - Requires runtime memory capture or tile mapping
 
 ### String Fragmentation

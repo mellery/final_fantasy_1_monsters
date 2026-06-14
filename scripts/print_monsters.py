@@ -7,31 +7,56 @@ from item_names import decode_bits, ELEMENTS, FAMILIES
 @dataclass
 class MonsterStats:
     # Field meanings from the FF1 disassembly (some formats.txt, "Enemy data").
+    # Several fields are stored "raw"; the game (and gamercorner guide) display
+    # derived values - see the display_* properties below.
     exp: int
     gold: int
     HP: int
-    morale: int
+    morale: int      # raw; run level = (morale - 80) // 2, min 0 (see display_run_level)
     ai: int          # AI script index (0xff = none); see print_ai.py
-    agility: int
+    agility: int     # raw evade; displayed as agility // 2
     defense: int     # damage absorbed
     hits: int        # number of attacks
-    hit_rate: int
-    strength: int    # attack power
+    hit_rate: int    # raw; displayed hit % = 84 + hit_rate // 2
+    strength: int    # attack power (damage per hit)
     crit_rate: int
-    unknown_E: int   # byte E - still undocumented
+    attack_element: int  # byte E: element of the monster's attack (bitfield, see
+                         # ELEMENTS) used vs. the target's resist when its attack
+                         # inflicts a status. Non-zero iff `ailment` is set.
     ailment: int     # attack-inflicted status ailment
     family_group: int
-    mag_def: int
+    mag_def: int     # raw; displayed as mag_def // 2
     element_weak: int
     element_resist: int
 
+    # Display conversions matching the game / gamercorner guide
+    @property
+    def display_hit(self):
+        return 84 + self.hit_rate // 2
+
+    @property
+    def display_evade(self):
+        return self.agility // 2
+
+    @property
+    def display_mag_def(self):
+        return self.mag_def // 2
+
+    @property
+    def display_run_level(self):
+        return max(0, (self.morale - 80) // 2)
+
     def __str__(self):
         ai = f"ai{self.ai}" if self.ai != 0xff else "no AI"
+        atk_elem = decode_bits(self.attack_element, ELEMENTS)
         return (
             f"  family: {decode_bits(self.family_group, FAMILIES)}\t{ai}\n"
             f"  EXP:{self.exp} \t GLD: {self.gold} \t HP: {self.HP}\n"
-            f"  DEF: {self.defense} \t HIT: {self.hits} \t STR: {self.strength}"
-            f" \t AGI: {self.agility} \t MDEF: {self.mag_def}\n"
+            f"  DEF: {self.defense} \t HITS: {self.hits} \t DMG: {self.strength}"
+            f" \t HIT%: {self.display_hit} \t CRIT: {self.crit_rate}\n"
+            f"  EVA: {self.display_evade} \t MDEF: {self.display_mag_def}"
+            f" \t RUN.LV: {self.display_run_level}\n"
+            f"  ATK-ELEM: {atk_elem} \t AILMENT: 0x{self.ailment:02x}\n"
             f"  WEAK: {decode_bits(self.element_weak, ELEMENTS)}"
             f"\tRESIST: {decode_bits(self.element_resist, ELEMENTS)}\n"
 

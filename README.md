@@ -176,8 +176,11 @@ Custom scripts for automated extraction and analysis:
   black background like the game (extract_monster_sprites.py)
 - Element bitfield fully decoded (Status/Poison/Time/Death/Fire/Ice/Lit/Earth)
 
+- All 20 monster stat bytes identified (byte E = attack element, confirmed by
+  cross-referencing gamercorner guide); print_monsters.py shows guide-style
+  display values (Hit% = 84+raw/2, Eva/MagDef = raw/2, RunLv = (morale-80)/2)
+
 ### In Progress 🔄
-- Monster stat byte E (one field still undocumented)
 - Treasure gold-chest amounts (ids 0x6c-0xff) and the 0x12-0x15 special items
 - Shop town/type labels and clinic/caravan price slots
 - Weapon/armor category words (second word from icon tile)
