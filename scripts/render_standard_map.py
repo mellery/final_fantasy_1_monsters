@@ -18,12 +18,18 @@ import os
 import struct
 import sys
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from nes_color_converter import NES_PALETTE
 from print_domains import MAP_NAMES
 
 SMPTR, TILESETS, TSA, ATTR, CHRBASE, PAL = 0x10010, 0x2cd0, 0x1010, 0x410, 0xc010, 0x2010
+PROP, MAPOBJ, TREASURE = 0x810, 0x3410, 0x3f110
 MAP_W = MAP_H = 64
+
+try:
+    _FONT = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", 11)
+except Exception:
+    _FONT = ImageFont.load_default()
 
 
 def decompress(data, src):
@@ -78,16 +84,86 @@ def render_map(data, mapid):
     return img
 
 
+def find_chests(data, mapid):
+    """Chest tiles: tileset_prop ssss field == 4. Returns (mx, my, treasure_id)."""
+    ts = data[TILESETS + mapid]
+    pb = PROP + ts * 256
+    chest_tiles = {m: data[pb + m * 2 + 1] for m in range(128)
+                   if (data[pb + m * 2] >> 1) & 0x0f == 4}
+    grid = decompress(data, SMPTR + struct.unpack_from('<H', data, SMPTR + mapid * 2)[0])
+    return [(i % MAP_W, i // MAP_W, chest_tiles[m])
+            for i, m in enumerate(grid) if m in chest_tiles]
+
+
+def find_npcs(data, mapid):
+    """16 map objects x (id, X-with-flags, Y). Returns (id, mx, my) for real ones."""
+    o = MAPOBJ + mapid * 0x30
+    out = []
+    for k in range(16):
+        oid, x, y = data[o + k * 3], data[o + k * 3 + 1], data[o + k * 3 + 2]
+        if oid:
+            out.append((oid, x & 0x3f, y & 0x3f))
+    return out
+
+
+def annotate(img, data, mapid, item_name):
+    """Overlay chest (yellow, labeled with contents) and NPC (cyan) markers."""
+    d = ImageDraw.Draw(img)
+    for mx, my, tid in find_chests(data, mapid):
+        x, y = mx * 16, my * 16
+        d.rectangle([x, y, x + 15, y + 15], outline=(255, 230, 0), width=2)
+        d.text((x + 1, y + 16), item_name(data[TREASURE + tid]), fill=(255, 230, 0), font=_FONT)
+    for oid, mx, my in find_npcs(data, mapid):
+        x, y = mx * 16, my * 16
+        d.rectangle([x, y, x + 15, y + 15], outline=(0, 230, 255), width=2)
+        d.text((x + 2, y + 2), str(oid), fill=(0, 230, 255), font=_FONT)
+    return img
+
+
 def main():
-    rom = sys.argv[1] if len(sys.argv) > 1 else '../roms/Final Fantasy (USA).nes'
-    out_dir = sys.argv[2] if len(sys.argv) > 2 else '../output/maps'
+    args = [a for a in sys.argv[1:] if not a.startswith('-')]
+    list_only = '--list' in sys.argv
+    rom = args[0] if args else '../roms/Final Fantasy (USA).nes'
+    out_dir = args[1] if len(args) > 1 else '../output/maps'
     with open(rom, 'rb') as f:
         data = f.read()
+
+    from item_names import build_item_id_map, get_gold_names
+    id_map = build_item_id_map(data)
+    gold = get_gold_names(data)
+
+    def item_name(iid):
+        # Treasure namespace: 0x01-0x6b items, 0x6c-0xaf gold, 0xb0+ higher gold
+        # (not yet decoded). NOTE: 0xb0+ is NOT magic here - that's the shop namespace.
+        if iid <= 0x6b and iid in id_map:
+            return id_map[iid]
+        if 0x6c <= iid < 0x6c + len(gold):
+            return gold[iid - 0x6c]
+        return f'gold?:{iid:02x}'
+
+    if list_only:
+        # Text dump of chests/NPCs per map, for verifying contents against a guide
+        for mapid in range(61):
+            name = MAP_NAMES.get(mapid, f'map{mapid}')
+            chests = find_chests(data, mapid)
+            npcs = find_npcs(data, mapid)
+            print(f"\n[{mapid:02d}] {name}  ({len(chests)} chests, {len(npcs)} NPCs)")
+            seen = set()
+            for mx, my, tid in chests:
+                if tid in seen:
+                    continue
+                seen.add(tid)
+                print(f"    chest @({mx:2d},{my:2d}) TC{tid:<3d} = {item_name(data[TREASURE + tid])}")
+        return
+
     os.makedirs(out_dir, exist_ok=True)
     for mapid in range(61):
         name = MAP_NAMES.get(mapid, f'map{mapid}').replace('/', '_').replace(' ', '_')
-        render_map(data, mapid).save(os.path.join(out_dir, f"{mapid:02d}_{name}.png"))
-    print(f"rendered 61 standard maps to {out_dir}")
+        base = render_map(data, mapid)
+        base.save(os.path.join(out_dir, f"{mapid:02d}_{name}.png"))
+        annotate(base.copy(), data, mapid, item_name).save(
+            os.path.join(out_dir, f"{mapid:02d}_{name}_annotated.png"))
+    print(f"rendered 61 standard maps (plain + annotated) to {out_dir}")
 
 
 if __name__ == "__main__":
