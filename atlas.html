@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Final Fantasy (NES) Data Atlas</title>
+<style>
+  :root { --bg:#14161c; --panel:#1d2029; --accent:#f8c838; --line:#2c3140; --txt:#e6e8ee; --dim:#8b93a7; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt);
+         font:14px/1.4 -apple-system,Segoe UI,Roboto,sans-serif; }
+  header { padding:14px 18px; border-bottom:1px solid var(--line); display:flex;
+           align-items:center; gap:16px; flex-wrap:wrap; position:sticky; top:0; background:var(--bg); z-index:5; }
+  h1 { font-size:18px; margin:0; color:var(--accent); }
+  nav button { background:var(--panel); color:var(--txt); border:1px solid var(--line);
+               padding:6px 12px; border-radius:6px; cursor:pointer; margin-right:4px; }
+  nav button.active { background:var(--accent); color:#000; border-color:var(--accent); font-weight:bold; }
+  #search { margin-left:auto; background:var(--panel); border:1px solid var(--line);
+            color:var(--txt); padding:7px 10px; border-radius:6px; width:240px; }
+  main { padding:16px 18px; }
+  table { border-collapse:collapse; width:100%; }
+  th,td { padding:5px 9px; border-bottom:1px solid var(--line); text-align:left; white-space:nowrap; }
+  th { color:var(--accent); cursor:pointer; user-select:none; position:sticky; top:60px; background:var(--bg); }
+  tr:hover td { background:#222633; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .sw { display:inline-block; width:13px; height:13px; border:1px solid #0008; vertical-align:middle; }
+  .dim { color:var(--dim); }
+  .pill { background:#2a2f3d; border-radius:4px; padding:1px 6px; margin:0 2px 2px 0; display:inline-block; font-size:12px; }
+  .mapcard { display:inline-block; vertical-align:top; width:340px; margin:0 14px 18px 0;
+             background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px; }
+  .mapcard img { width:100%; image-rendering:pixelated; border-radius:4px; background:#000; }
+  .mapcard h3 { margin:8px 0 4px; color:var(--accent); font-size:15px; }
+  .grid64 { display:grid; grid-template-columns:repeat(8,1fr); gap:2px; max-width:760px; }
+  .grid64 div { background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:6px; font-size:11px; min-height:46px; }
+  .grid64 b { color:var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>FF1 Data Atlas</h1>
+  <nav id="tabs"></nav>
+  <input id="search" placeholder="filter…">
+</header>
+<main id="view"><p class="dim">Loading ff1_data.json… (serve this folder over HTTP, e.g. <code>python3 -m http.server</code>)</p></main>
+
+<script>
+let DATA = null, TAB = 'monsters', SORT = {col:null, dir:1};
+const view = document.getElementById('view'), search = document.getElementById('search');
+
+const TABS = {
+  monsters:  d => table(d.monsters, ['id','name','palette','hp','exp','gold','attack','hits','hit_pct','crit','defense','evade','mag_def','family','weak','resist','attack_element','ai'],
+                        {palette:swatches, ai:fmtAI}),
+  weapons:   d => table(d.weapons, ['id','name','damage','hit','crit','element','vs_family','price']),
+  armor:     d => table(d.armor, ['id','name','defense','weight','resist','price']),
+  magic:     d => table(d.magic, ['id','name','accuracy','effect','element','target']),
+  treasure:  d => table(d.treasure, ['chest','contents']),
+  formations:d => table(d.formations.map(f=>({id:f.id,type:f.type,no_run:f.no_run,
+                        groups:f.groups.map(g=>`${g.min}-${g.max} ${g.monster}`).join(', ')})), ['id','type','no_run','groups']),
+  maps:      d => mapsView(d),
+  zones:     d => zonesView(d),
+  classes:   d => classesView(d),
+};
+
+function swatches(arr){ return arr.map(c=>`<span class="sw" style="background:${c}"></span>`).join(''); }
+function fmtAI(ai){ if(!ai) return '<span class="dim">—</span>';
+  let s = ai.magic_pct? `<b>${ai.magic_pct}% magic:</b> ${ai.spells.join(', ')}` : '';
+  if(ai.skill_pct) s += (s?'  ':'') + `<b>${ai.skill_pct}% skill:</b> ${ai.skills.map(k=>k.element).join(', ')}`;
+  return s || '<span class="dim">—</span>'; }
+
+function table(rows, cols, fmt={}){
+  if(SORT.col && cols.includes(SORT.col))
+    rows = rows.slice().sort((a,b)=>{const x=a[SORT.col],y=b[SORT.col];
+      return (typeof x==='number'?x-y:String(x).localeCompare(String(y)))*SORT.dir;});
+  const q = search.value.toLowerCase();
+  if(q) rows = rows.filter(r=>cols.some(c=>String(r[c]).toLowerCase().includes(q)));
+  let h = '<table><thead><tr>'+cols.map(c=>`<th data-c="${c}">${c}</th>`).join('')+'</tr></thead><tbody>';
+  for(const r of rows){
+    h += '<tr>'+cols.map(c=>{
+      let v = r[c]; if(fmt[c]) return `<td>${fmt[c](v)}</td>`;
+      const cls = typeof v==='number'?' class="num"':'';
+      if(v==='-'||v===''||v==null) v='<span class="dim">—</span>';
+      return `<td${cls}>${v}</td>`;
+    }).join('')+'</tr>';
+  }
+  return h+'</tbody></table>';
+}
+
+function mapsView(d){
+  const q = search.value.toLowerCase();
+  return d.maps.filter(m=>!q||m.name.toLowerCase().includes(q)).map(m=>{
+    const fn = String(m.id).padStart(2,'0')+'_'+m.name.replace(/\//g,'_').replace(/ /g,'_');
+    const ch = m.chests.map(c=>`<span class="pill">${c.contents} <span class="dim">(${c.x},${c.y})</span></span>`).join('');
+    return `<div class="mapcard"><img loading="lazy" src="output/maps/${fn}_annotated.png"
+      onerror="this.src='output/maps/${fn}.png';this.onerror=null">
+      <h3>${m.name}</h3>
+      <div class="dim">tileset ${m.tileset} · ${m.chests.length} chests · ${m.npcs.length} NPCs</div>
+      <div style="margin-top:6px">${ch||'<span class=dim>no chests</span>'}</div></div>`;
+  }).join('');
+}
+
+function zonesView(d){
+  return '<p class="dim">Overworld land zones are domains 0–63 (8×8 grid: (Y&gt;&gt;5)*8 + (X&gt;&gt;5)); '
+    +'64–127 are standard maps (map id + 0x40).</p><div class="grid64">'
+    + d.zones.slice(0,64).map(z=>{
+        const mons=[...new Set(z.formations.flatMap(f=>{
+          const F=d.formations[f&0x7f]; return F?F.groups.map(g=>g.monster):[];}))].slice(0,4);
+        return `<div><b>Z${z.id}</b><br>${mons.join(', ')||'<span class=dim>—</span>'}</div>`;
+      }).join('') + '</div>';
+}
+
+function classesView(d){
+  let h = '<h2 style="color:var(--accent)">Starting stats</h2><table><thead><tr>'
+    +['class','HP','Str','Agi','Int','Vit','Luck'].map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+  for(const c of d.classes){ const s=c.start;
+    h+=`<tr><td>${c.name}</td><td class=num>${s.HP}</td><td class=num>${s.Str}</td><td class=num>${s.Agi}</td>`
+      +`<td class=num>${s.Int}</td><td class=num>${s.Vit}</td><td class=num>${s.Luck}</td></tr>`; }
+  h+='</tbody></table><h2 style="color:var(--accent)">Level-up growth (stat increases over 49 levels)</h2>'
+    +'<table><thead><tr>'+['class','Str','Agi','Int','Vit','Luck','strong HP lvls','MP lvls'].map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+  for(const c of d.classes){ const g=c.growth;
+    h+=`<tr><td>${c.name}</td><td class=num>${g.Str}</td><td class=num>${g.Agi}</td><td class=num>${g.Int}</td>`
+      +`<td class=num>${g.Vit}</td><td class=num>${g.Luck}</td><td class=num>${c.strong_hp_levels}</td><td class=num>${c.mp_levels}</td></tr>`; }
+  h+='</tbody></table><h2 style="color:var(--accent)">EXP to advance</h2><div>'
+    + d.exp_to_advance.map((e,i)=>`<span class="pill">L${i+1}→${i+2}: ${e}</span>`).join('')+'</div>';
+  return h;
+}
+
+function render(){
+  view.innerHTML = TABS[TAB](DATA);
+  view.querySelectorAll('th[data-c]').forEach(th=>th.onclick=()=>{
+    const c=th.dataset.c; SORT.dir = SORT.col===c? -SORT.dir : 1; SORT.col=c; render();
+  });
+}
+function setTab(t){ TAB=t; SORT={col:null,dir:1}; search.value='';
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.t===t));
+  render(); }
+
+search.oninput = render;
+fetch('output/ff1_data.json').then(r=>r.json()).then(d=>{
+  DATA=d;
+  document.getElementById('tabs').innerHTML = Object.keys(TABS).map(t=>
+    `<button data-t="${t}" onclick="setTab('${t}')">${t}</button>`).join('');
+  setTab('monsters');
+}).catch(e=> view.innerHTML='<p class="dim">Could not load output/ff1_data.json — run <code>python3 scripts/export_json.py</code> and serve over HTTP.</p>');
+</script>
+</body>
+</html>

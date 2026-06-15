@@ -182,6 +182,12 @@ Custom scripts for automated extraction and analysis:
 - Overworld map rendered in full color (render_overworld.py, 4096x4096)
 - All 61 standard maps rendered in full color (render_standard_map.py)
 
+### Data atlas (JSON + HTML)
+- `scripts/export_json.py` -> `output/ff1_data.json` aggregates everything
+- `atlas.html` browses it (monsters, items, magic, treasure, formations, zones,
+  maps with chest/NPC overlays, classes). Usage:
+  `python3 scripts/export_json.py && python3 -m http.server` then open atlas.html
+
 ### In Progress 🔄
 - A few high-range gold-chest ids (0xb0+) not in the gold-name table
 - Shop town/type labels and clinic/caravan price slots
