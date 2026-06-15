@@ -150,7 +150,27 @@ function graphView(d){
       <span class="dim">— overworld hub → towns/castles/dungeons; dotted = shops. Click a map node to jump to it.</span>
     </div>
     <div id="graphwrap" style="overflow:auto; max-height:82vh; border:1px solid var(--line);
-         border-radius:6px; background:#14161c">${body}</div>`;
+         border-radius:6px; background:#14161c">${body}</div>
+    ${graphLegend()}`;
+}
+function gline(color, dash){
+  return `<svg width="34" height="10" style="vertical-align:middle"><line x1="1" y1="5" x2="33" y2="5"
+    stroke="${color}" stroke-width="2.5"${dash?` stroke-dasharray="${dash}"`:''}></line></svg>`;
+}
+function gnode(fill){ return `<span class="sw" style="background:${fill};width:16px;height:12px"></span>`; }
+function graphLegend(){
+  const E = [[gline('#cc4444'),'overworld → map (entrance)'],
+             [gline('#5599cc'),'map → map (stairs / teleport)'],
+             [gline('#55aa55','5,3'),'map → overworld (exit)'],
+             [gline('#888888','2,3'),'town → shop']];
+  const N = [[gnode('#f8c838'),'overworld'],[gnode('#fff3c4'),'town'],
+             [gnode('#a9c7e8'),'castle'],[gnode('#cfd4dd'),'dungeon'],
+             [gnode('#d98c8c'),'shop (colored by type)']];
+  const cell = ([sw,txt])=>`<span style="display:inline-flex;align-items:center;gap:6px;margin-right:18px;white-space:nowrap">${sw}<span class="dim">${txt}</span></span>`;
+  return `<div style="margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel)">
+      <div style="margin-bottom:6px"><b style="color:var(--accent)">Edges</b> &nbsp; ${E.map(cell).join('')}</div>
+      <div><b style="color:var(--accent)">Nodes</b> &nbsp; ${N.map(cell).join('')}</div>
+    </div>`;
 }
 function graphZoom(f){
   GZOOM = f === 0 ? 820 : Math.max(240, Math.min(6000, GZOOM * f));
