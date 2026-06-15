@@ -249,6 +249,18 @@ is reduced to a flag). Annotated maps mark normal teleports (cyan, -> dest name)
 and exits (green); the atlas makes them clickable. Verified: Earth Cave
 B1->B2->B3->B4->B5->overworld, Ice Cave branch, Castle Ordeals 2F teleport maze.
 
+#### `scripts/build_map_graph.py` ⭐
+**Purpose**: Build a world connectivity graph and emit Graphviz DOT +
+(if `dot` is installed) a rendered SVG. Nodes: Overworld, the 61 standard maps
+(typed town 0-7 / castle / dungeon), and shops. Edges: overworld entrances
+(lut_EntrTele_Map) -> maps; map -> map normal teleports and map -> overworld
+exits (render_standard_map.teleport_links); town -> shop. Shops are found by
+scanning town (maps 0-7) door tiles (special DOOR/LOCKED/CLOSEROOM with property
+byte1 != 0 = shop id; see @CheckShop in bank_0F); shop type from lut_ShopTypes
+(file 0x3ebc5: 0 Weapon,1 Armor,2 White,3 Black,4 Clinic,5 Inn,6 Item,7 Caravan).
+Map nodes get URL="#m<id>" so the atlas graph tab can make them clickable.
+Outputs output/ff1_map_graph.dot and output/map_graph.svg. Layout rankdir=LR.
+
 #### `scripts/render_overworld.py` ⭐
 **Purpose**: Render the 256x256 overworld to PNG (4096x4096 + preview). Rows
 RLE-compressed, pointer table lut_OWPtrTbl at 0x4010 (bank 01). OW tileset is one

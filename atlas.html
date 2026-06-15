@@ -74,6 +74,7 @@ const TABS = {
   treasure:  d => table(d.treasure, ['chest','contents']),
   formations:d => formationsView(d),
   overworld: d => overworldView(d),
+  graph:     d => graphView(d),
   maps:      d => mapsView(d),
   zones:     d => zonesView(d),
   classes:   d => classesView(d),
@@ -133,6 +134,27 @@ function table(rows, cols, fmt={}){
     }).join('')+'</tr>';
   }
   return h+'</tbody></table>';
+}
+
+let GRAPH_SVG = null, GZOOM = 820;
+function graphView(d){
+  let body;
+  if(GRAPH_SVG === null) body = '<p class="dim" style="padding:14px">loading graph…</p>';
+  else if(!GRAPH_SVG) body = '<p class="dim" style="padding:14px">output/map_graph.svg not found — run <code>python3 scripts/build_map_graph.py</code></p>';
+  else body = GRAPH_SVG;
+  return `<div style="margin-bottom:8px">
+      <button class="owtog" onclick="graphZoom(1.25)">＋ zoom</button>
+      <button class="owtog" onclick="graphZoom(0.8)">－ zoom</button>
+      <button class="owtog" onclick="graphZoom(0)">reset</button>
+      <a class="maplink" href="output/ff1_map_graph.dot" download>⭳ download .dot</a>
+      <span class="dim">— overworld hub → towns/castles/dungeons; dotted = shops. Click a map node to jump to it.</span>
+    </div>
+    <div id="graphwrap" style="overflow:auto; max-height:82vh; border:1px solid var(--line);
+         border-radius:6px; background:#14161c">${body}</div>`;
+}
+function graphZoom(f){
+  GZOOM = f === 0 ? 820 : Math.max(240, Math.min(6000, GZOOM * f));
+  const s = view.querySelector('#graphwrap svg'); if(s) s.style.width = GZOOM + 'px';
 }
 
 function goMap(id){
@@ -214,7 +236,21 @@ function render(){
   view.querySelectorAll('th[data-c]').forEach(th=>th.onclick=()=>{
     const c=th.dataset.c; SORT.dir = SORT.col===c? -SORT.dir : 1; SORT.col=c; render();
   });
+  if(TAB==='graph'){
+    const s = view.querySelector('#graphwrap svg');
+    if(s){ s.removeAttribute('width'); s.removeAttribute('height');
+           s.style.width = GZOOM+'px'; s.style.height='auto'; }
+  }
 }
+
+// click a node in the map graph -> jump to that map's card
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#graphwrap')) return;
+  const a = e.target.closest('a'); if(!a) return;
+  const href = a.getAttribute('xlink:href') || a.getAttribute('href') || '';
+  if(href.startsWith('#')){ e.preventDefault();
+    const m = href.match(/^#m(\d+)$/); if(m){ setTab('maps'); goMap(+m[1]); } }
+});
 function setTab(t){ TAB=t; SORT={col:null,dir:1}; search.value='';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.t===t));
   render(); }
@@ -237,6 +273,10 @@ document.addEventListener('mousemove', e=>{
   pop.style.left=x+'px'; pop.style.top=y+'px';
 });
 document.addEventListener('mouseout', e=>{ if(e.target.closest('[data-spr]')) pop.style.display='none'; });
+
+fetch('output/map_graph.svg').then(r=>r.ok?r.text():'').then(t=>{
+  GRAPH_SVG=t; if(TAB==='graph') render();
+}).catch(()=>{ GRAPH_SVG=''; });
 
 fetch('output/ff1_data.json').then(r=>r.json()).then(d=>{
   DATA=d;

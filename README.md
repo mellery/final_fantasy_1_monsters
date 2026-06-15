@@ -37,6 +37,7 @@ finalfantasy/
 │   ├── print_magic_permissions.py                           # spell-learning chart
 │   ├── render_standard_map.py / render_overworld.py         # map renderers
 │   ├── render_formations.py                                 # battle-scene renderer
+│   ├── build_map_graph.py                                   # world map graph (DOT/SVG)
 │   ├── export_json.py                                       # JSON for the atlas
 │   ├── item_names.py / ff1_palettes.py / load_tbl.py        # shared helpers
 │   └── find_strings.py / print_dialog.py / nes_color_converter.py / ...
@@ -215,6 +216,10 @@ Custom scripts for automated extraction and analysis:
   Annotated maps mark stairs (→ dest) and overworld exits; the atlas links them so
   you can click through the dungeon floors. Verified: Earth Cave B1→…→B5→overworld,
   Ice Cave branch, ToFR Earth→Fire, Castle Ordeals teleport maze
+- World connectivity graph (build_map_graph.py → output/ff1_map_graph.dot +
+  map_graph.svg): overworld + 61 maps (towns/castles/dungeons) + shops as nodes;
+  edges from overworld entrances, map teleports, exits, and town→shop door tiles.
+  Shop ids come from town door tiles (property byte1), typed via lut_ShopTypes
 - Class sprites extracted pixel-exact (extract_class_sprites.py): overworld
   'mapman' (correct per-class palette split top/bottom row) + battle sprite
   (standing pose, class battle palette). Verified: black mage blue robe/yellow
@@ -226,10 +231,11 @@ Custom scripts for automated extraction and analysis:
 
 ### Data atlas (JSON + HTML)
 - `scripts/export_json.py` -> `output/ff1_data.json` aggregates everything
-- `atlas.html` browses it (monsters, items, magic, treasure, formations as
-  battle scenes, overworld map (plain/annotated toggle), zones, maps with
-  chest/NPC overlays, classes with overworld + battle sprites). Sprite-on-hover
-  throughout. Usage:
+- `atlas.html` browses it (monsters, items, magic with spell-learning chart,
+  treasure, formations as battle scenes, overworld map, a clickable world-map
+  connectivity graph, maps with chest/NPC/teleport overlays, zones, classes with
+  overworld + battle sprites). Sprite-on-hover throughout. The graph tab loads
+  `output/map_graph.svg` (run `build_map_graph.py`). Usage:
   `python3 scripts/export_json.py && python3 -m http.server` then open atlas.html
 
 ### In Progress / minor 🔄
