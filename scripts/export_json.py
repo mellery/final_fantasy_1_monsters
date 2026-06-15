@@ -17,11 +17,14 @@ from item_names import (get_weapon_names, get_armor_names, get_magic_names,
                         decode_bits, ELEMENTS, FAMILIES, TARGETS)
 from ff1_palettes import get_monster_palettes
 from print_domains import MAP_NAMES
-from print_classes import CLASS_NAMES, starting_stats, exp_to_advance, levelup_summary, STAT_BITS
+from print_classes import (CLASS_NAMES, starting_stats, starting_mp,
+                           exp_to_advance, levelup_summary, STAT_BITS)
+from print_magic_permissions import get_magic_permissions
 from render_standard_map import find_chests, find_npcs
 
 MON, AI_TABLE, MAGIC_DATA = 0x30530, 0x31030, 0x301f0
 WEAPON, ARMOR, FORM, DOMAINS, TREASURE = 0x30010, 0x30150, 0x2c410, 0x2c010, 0x3110
+BATTLE_RATES = 0x2cc10  # entry 0 = overworld (unused); standard maps at +1+mid
 
 
 def hexcol(rgb):
@@ -98,12 +101,16 @@ def build(data):
         out['armor'].append({'id': i, 'name': nm, 'defense': b[1], 'weight': b[0],
                              'resist': decode_bits(b[2], ELEMENTS),
                              'price': get_price(data, 0x44 + i)})
+    perms = {p['id']: p for p in get_magic_permissions(data)}
     out['magic'] = []
     for i, nm in enumerate(magic):
         b = data[MAGIC_DATA + i * 8: MAGIC_DATA + i * 8 + 8]
-        out['magic'].append({'id': i, 'name': nm, 'accuracy': b[0], 'effect': b[1],
+        p = perms.get(i, {})
+        out['magic'].append({'id': i, 'name': nm, 'level': p.get('level'),
+                             'school': p.get('school'), 'accuracy': b[0], 'effect': b[1],
                              'element': decode_bits(b[2], ELEMENTS),
-                             'target': decode_bits(b[3], TARGETS)})
+                             'target': decode_bits(b[3], TARGETS),
+                             'classes': p.get('classes', [])})
 
     # Formations / zones
     forms = []
@@ -132,14 +139,17 @@ def build(data):
                   for mx, my, tid, m in find_chests(data, mid)]
         npcs = [{'id': oid, 'x': mx, 'y': my} for oid, mx, my in find_npcs(data, mid)]
         maps.append({'id': mid, 'name': MAP_NAMES.get(mid, f'map{mid}'),
-                     'tileset': data[0x2cd0 + mid], 'chests': chests, 'npcs': npcs})
+                     'tileset': data[0x2cd0 + mid], 'encounter_rate': data[BATTLE_RATES + 1 + mid],
+                     'chests': chests, 'npcs': npcs})
     out['maps'] = maps
 
     # Classes
     classes = []
     for c, name in enumerate(CLASS_NAMES):
         counts, strong, mp = levelup_summary(data, c)
-        classes.append({'id': c, 'name': name, 'start': starting_stats(data, c),
+        start = starting_stats(data, c)
+        start['MP'] = starting_mp(c)
+        classes.append({'id': c, 'name': name, 'start': start,
                         'growth': counts, 'strong_hp_levels': strong, 'mp_levels': mp})
     out['classes'] = classes
     out['exp_to_advance'] = [exp_to_advance(data, lv) for lv in range(1, 50)]

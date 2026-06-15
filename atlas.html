@@ -67,7 +67,8 @@ const TABS = {
                         {palette:swatches, ai:fmtAI, name:(v,r)=>mag(monsterSprite(r.id,v))+v}),
   weapons:   d => table(d.weapons, ['id','name','damage','hit','crit','element','vs_family','price']),
   armor:     d => table(d.armor, ['id','name','defense','weight','resist','price']),
-  magic:     d => table(d.magic, ['id','name','accuracy','effect','element','target']),
+  magic:     d => table(d.magic, ['id','name','level','school','accuracy','effect','element','target','classes'],
+                        {classes:fmtClasses}),
   treasure:  d => table(d.treasure, ['chest','contents']),
   formations:d => formationsView(d),
   overworld: d => overworldView(d),
@@ -86,6 +87,12 @@ function classSprites(c){
        + `<img class="sprthumb" data-spr="${bt}" src="${bt}" title="battle sprite">`;
 }
 
+const CLASS_ABBR = {Fighter:'FT',Thief:'TH',BlackBelt:'BB',RedMage:'RM',WhiteMage:'WM',
+  BlackMage:'BM',Knight:'KN',Ninja:'NJ',Master:'MA',RedWizard:'RW',WhiteWizard:'WW',BlackWizard:'BW'};
+function fmtClasses(arr){
+  if(!arr || !arr.length) return '<span class="dim">none</span>';
+  return arr.map(c=>`<span class="pill" title="${c}">${CLASS_ABBR[c]||c}</span>`).join('');
+}
 function swatches(arr){ return arr.map(c=>`<span class="sw" style="background:${c}"></span>`).join(''); }
 function fmtAI(ai){ if(!ai) return '<span class="dim">—</span>';
   let s = ai.magic_pct? `<b>${ai.magic_pct}% magic:</b> ${ai.spells.join(', ')}` : '';
@@ -155,7 +162,7 @@ function mapsView(d){
     return `<div class="mapcard"><img loading="lazy" src="output/maps/${fn}_annotated.png"
       onerror="this.src='output/maps/${fn}.png';this.onerror=null">
       <h3>${m.name}</h3>
-      <div class="dim">tileset ${m.tileset} · ${m.chests.length} chests · ${m.npcs.length} NPCs</div>
+      <div class="dim">tileset ${m.tileset} · rate ${m.encounter_rate} · ${m.chests.length} chests · ${m.npcs.length} NPCs</div>
       <div style="margin-top:6px">${ch||'<span class=dim>no chests</span>'}</div></div>`;
   }).join('');
 }
@@ -172,10 +179,11 @@ function zonesView(d){
 
 function classesView(d){
   let h = '<h2 style="color:var(--accent)">Starting stats</h2><table><thead><tr>'
-    +['class','HP','Str','Agi','Int','Vit','Luck'].map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+    +['class','HP','Str','Agi','Int','Vit','Luck','Dmg','Hit','Eva','MDef','MP'].map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
   for(const c of d.classes){ const s=c.start;
     h+=`<tr><td>${classSprites(c)} ${c.name}</td><td class=num>${s.HP}</td><td class=num>${s.Str}</td><td class=num>${s.Agi}</td>`
-      +`<td class=num>${s.Int}</td><td class=num>${s.Vit}</td><td class=num>${s.Luck}</td></tr>`; }
+      +`<td class=num>${s.Int}</td><td class=num>${s.Vit}</td><td class=num>${s.Luck}</td>`
+      +`<td class=num>${s.Dmg}</td><td class=num>${s.Hit}</td><td class=num>${s.Eva}</td><td class=num>${s.MDef}</td><td class=num>${s.MP}</td></tr>`; }
   h+='</tbody></table><h2 style="color:var(--accent)">Level-up growth (stat increases over 49 levels)</h2>'
     +'<table><thead><tr>'+['class','Str','Agi','Int','Vit','Luck','strong HP lvls','MP lvls'].map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
   for(const c of d.classes){ const g=c.growth;

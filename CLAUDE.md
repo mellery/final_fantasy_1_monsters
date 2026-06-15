@@ -296,7 +296,16 @@ attr(+0x300), palette(+0x380, 4x4 NES colors). OW BG CHR bank 02 (file 0x8010).
   is a formation ref; bit 7 selects the formation's B variant, low 7 bits are
   the formation index. The overworld grid and dungeon maps reference a domain.
   Verified: zone 1 = endgame (WarMECH), zones 29-30 = Coneria start (IMP/etc).
-- **Map encounter rates**: 0x2cc00, 64 bytes (one rate per map; separate).
+- **Map encounter rates**: lut_BattleRates 0x2cc10 (bank 0B $8C00). Entry 0 is
+  the overworld rate (unused); standard map M is at 0x2cc10 + 1 + M.
+- **Magic permissions** (spell-learning chart): 0x3ad28 (bank 0E, just before
+  lutMenuPalettes), 12 classes x 8 bytes. Byte = spell level (0-7); within it
+  spell uses mask 0x80>>(id&7); positions 0-3 White, 4-7 Black. A CLEAR bit = the
+  class CAN learn it (decode in print_magic_permissions.py). Class order:
+  FT,TH,BB,RM,WM,BM,KN,NJ,MA,RW,WW,BW.
+- **Class starting stats**: lut_ClassStartingStats 0x3050, 16 bytes/class:
+  +0 classid, +1 HP, +2..6 Str/Agi/Int/Vit/Luck, +7 damage, +8 hit%, +9 evade,
+  +A magic-def. Mages (class 3..5) also start with 2 MP (NewGame_LoadStartingStats).
 - Offsets confirmed by Entroper/FF1Disassembly bin names (0B_8000_battledomains,
   0B_8400_battleformations, 0B_8C00_mapencounterrates). Note the iNES 16-byte
   header: file = 0x10 + bank*0x4000 + (CPU-0x8000), so bank 0B $8000 = file 0x2c010.

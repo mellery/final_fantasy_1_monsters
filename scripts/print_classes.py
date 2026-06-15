@@ -23,8 +23,16 @@ STAT_BITS = [(0x10, 'Str'), (0x08, 'Agi'), (0x04, 'Int'), (0x02, 'Vit'), (0x01, 
 
 
 def starting_stats(data, cls):
+    # lut_ClassStartingStats: +1 HP, +2..+6 base stats, +7 damage, +8 hit%,
+    # +9 evade, +A magic-def (NewGame_LoadStartingStats, bank 0E)
     b = data[START + cls * 16: START + cls * 16 + 16]
-    return dict(HP=b[1], Str=b[2], Agi=b[3], Int=b[4], Vit=b[5], Luck=b[6])
+    return dict(HP=b[1], Str=b[2], Agi=b[3], Int=b[4], Vit=b[5], Luck=b[6],
+                Dmg=b[7], Hit=b[8], Eva=b[9], MDef=b[0xa])
+
+
+def starting_mp(cls):
+    # Mages (RedMage=3 .. < Knight=6) begin with 2 MP per level; others 0.
+    return 2 if 3 <= cls < 6 else 0
 
 
 def exp_to_advance(data, lv):  # lv = 1..49 (level lv -> lv+1)
@@ -55,10 +63,12 @@ def main():
         data = f.read()
 
     print("=== STARTING STATS ===")
-    print(f"{'class':10} {'HP':>3} {'Str':>3} {'Agi':>3} {'Int':>3} {'Vit':>3} {'Luck':>4}")
+    print(f"{'class':10} {'HP':>3} {'Str':>3} {'Agi':>3} {'Int':>3} {'Vit':>3} {'Luck':>4} "
+          f"{'Dmg':>3} {'Hit':>3} {'Eva':>3} {'MDef':>4} {'MP':>2}")
     for c, name in enumerate(CLASS_NAMES):
         s = starting_stats(data, c)
-        print(f"{name:10} {s['HP']:3} {s['Str']:3} {s['Agi']:3} {s['Int']:3} {s['Vit']:3} {s['Luck']:4}")
+        print(f"{name:10} {s['HP']:3} {s['Str']:3} {s['Agi']:3} {s['Int']:3} {s['Vit']:3} {s['Luck']:4} "
+              f"{s['Dmg']:3} {s['Hit']:3} {s['Eva']:3} {s['MDef']:4} {starting_mp(c):2}")
 
     print("\n=== LEVEL-UP GROWTH (guaranteed stat increases over 49 level-ups) ===")
     print(f"{'class':10} {'Str':>3} {'Agi':>3} {'Int':>3} {'Vit':>3} {'Luck':>4}  {'strongHP':>8} {'MPlvls':>6}")

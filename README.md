@@ -34,6 +34,7 @@ finalfantasy/
 │   ├── print_prices.py / print_shops.py / print_treasure.py # economy
 │   ├── print_formations.py / print_domains.py               # encounters + zones
 │   ├── print_classes.py / extract_class_sprites.py          # class data + sprites
+│   ├── print_magic_permissions.py                           # spell-learning chart
 │   ├── render_standard_map.py / render_overworld.py         # map renderers
 │   ├── render_formations.py                                 # battle-scene renderer
 │   ├── export_json.py                                       # JSON for the atlas
@@ -201,7 +202,13 @@ Custom scripts for automated extraction and analysis:
 - Overworld map rendered in color with entrance + encounter-zone overlays (render_overworld.py)
 - All 61 standard maps rendered in color, plus annotated versions with chest
   and NPC sprites overlaid (render_standard_map.py)
-- Character classes: starting stats, EXP table, level-up growth (print_classes.py)
+- Character classes: starting stats (incl. damage/hit%/evade/mag-def + starting
+  MP), EXP table, level-up growth (print_classes.py)
+- Magic-learning chart: which of the 12 classes can learn each of the 64 spells,
+  with spell level + school (print_magic_permissions.py, table at 0x3ad28).
+  Verified: HARM is white-mage-exclusive, RedMage learns both schools but not
+  level 8, WhiteWizard/BlackWizard get their full school
+- Per-map encounter rate (lut_BattleRates 0x2cc10, entry 0 = unused overworld)
 - Class sprites extracted pixel-exact (extract_class_sprites.py): overworld
   'mapman' (correct per-class palette split top/bottom row) + battle sprite
   (standing pose, class battle palette). Verified: black mage blue robe/yellow
@@ -225,8 +232,10 @@ Custom scripts for automated extraction and analysis:
 - Per-NPC sprite palette is per-map (game uses one scheme); not per-object
 
 ### TODO ⏸️
-- Magic-learning table (which class learns which spell at which level)
-- Extract music and sound effects
+- Extract music and sound effects (lut_TilesetMusicTrack maps tileset->track #,
+  but the per-song note data is a custom engine - not yet decoded)
+- Standard-map teleport connections (stairs/doors -> destination map; tile
+  teleport id indexes lut_NormTele/WarpTele/ExitTele)
 - Overworld object overlay (NPCs/bridge/canal)
 
 ## Reference Materials
