@@ -26,17 +26,19 @@ finalfantasy/
 │   ├── Final Fantasy (USA).cdl  # Code/Data Log
 │   ├── Final Fantasy (USA).fdb  # FCEUX debug symbols
 │   └── Jeopardy! (U).nes    # Additional NES ROM for testing
-├── scripts/                  # Python analysis scripts
-│   ├── monster_names.py     # Extract monster names
-│   ├── print_monsters.py    # Extract complete monster data
-│   ├── find_strings.py      # General string finder
-│   ├── find_ff1_monster_tiles.py  # Monster sprite extraction
-│   ├── find_tiles.py        # General tile finder
-│   ├── find_pallets.py      # Palette finder
-│   ├── find_huffman.py      # Huffman encoding analyzer
-│   ├── load_tbl.py          # Table file loader
-│   ├── nes_color_converter.py  # NES palette converter
-│   └── create_image_grid.py # Image grid generator
+├── atlas.html                # Browsable data atlas (loads output/ff1_data.json)
+├── scripts/                  # Python analysis scripts (see CLAUDE.md for all)
+│   ├── monster_names.py / print_monsters.py / print_ai.py   # monsters + AI
+│   ├── extract_monster_sprites.py / print_palettes.py       # color sprites
+│   ├── print_weapons.py / print_armor.py / print_magic.py   # equipment + spells
+│   ├── print_prices.py / print_shops.py / print_treasure.py # economy
+│   ├── print_formations.py / print_domains.py               # encounters + zones
+│   ├── print_classes.py                                     # class/level-up data
+│   ├── render_standard_map.py / render_overworld.py         # map renderers
+│   ├── export_json.py                                       # JSON for the atlas
+│   ├── item_names.py / ff1_palettes.py / load_tbl.py        # shared helpers
+│   └── find_strings.py / print_dialog.py / nes_color_converter.py / ...
+├── output/                   # Generated PNGs + ff1_data.json (gitignored)
 ├── tools/                    # Data files and tables
 │   ├── final_fantasy.tbl    # FF1 character encoding table
 │   ├── strings.txt          # Extracted strings
@@ -53,32 +55,43 @@ finalfantasy/
 ### Monster Data Structure
 Monster stats are stored as 128 sequential structs (20 bytes each) starting at ROM offset **0x30530**:
 
+All 20 bytes are now identified (see `scripts/print_monsters.py`):
+
 ```c
 struct MonsterStats {
-    u16 exp;           // Experience points
-    u16 gold;          // Gold dropped
-    u16 HP;            // Hit points
-    u8 morale;         // Morale stat
-    u8 unknown1;       // Possibly AI
-    u8 unknown2;       // Possibly evade
-    u8 absorb;         // Damage absorption
-    u8 hits;           // Number of attacks
-    u8 unknown5;       // Possibly hit rate
-    u8 dmg;            // Damage per hit
-    u8 unknown6;       // Possibly crit rate
-    u8 unknown7;       // Unknown
-    u8 unknown8;       // Possibly attack ailment
-    u8 family;         // Monster family bitvector
-    u8 unknown10;      // Possibly magic defense
-    u8 weak;           // Elemental weakness bitvector
-    u8 resist;         // Elemental resistance bitvector
+    u16 exp;            // Experience points
+    u16 gold;           // Gold dropped
+    u16 HP;             // Hit points
+    u8 morale;          // Morale (run level = (morale-80)/2)
+    u8 ai;              // AI script index (0xff = none); see print_ai.py
+    u8 agility;         // Evade (displayed as agility/2)
+    u8 defense;         // Damage absorbed
+    u8 hits;            // Number of attacks
+    u8 hit_rate;        // Displayed hit% = 84 + hit_rate/2
+    u8 strength;        // Damage per hit
+    u8 crit_rate;       // Critical hit %
+    u8 attack_element;  // Element of the monster's attack (set when it inflicts a status)
+    u8 ailment;         // Attack-inflicted status ailment
+    u8 family;          // Monster family bitvector
+    u8 mag_def;         // Magic defense (displayed as mag_def/2)
+    u8 weak;            // Elemental weakness bitvector
+    u8 resist;          // Elemental resistance bitvector
 };
 ```
 
-### ROM Offsets
-- **Monster Names**: 0x2d5f0 to 0x2d951
-- **Monster Stats**: 0x30530 (128 structs × 20 bytes)
-- **Character Tiles**: PPU $80
+Field meanings come from the FF1 disassembly (Entroper/FF1Disassembly,
+`some formats.txt`) plus cross-referencing the gamercorner monster guide.
+
+### Key ROM Offsets
+- **Monster names**: 0x2d5f0–0x2d951 · **Monster stats**: 0x30530 (128 × 20)
+- **Monster AI**: 0x31030 · **Enemy sprites (CHR)**: 0x1c010+ / 0x20010+
+- **Weapons**: 0x30010 (40 × 8) · **Armor**: 0x30150 (40 × 4) · **Magic**: 0x301f0 (64 × 8)
+- **Prices**: 0x37c10 · **Treasure** (lut_Treasure): 0x3110 · **Shops**: 0x38310
+- **Formations**: 0x2c410 (128 × 16) · **Battle domains**: 0x2c010 (128 × 8)
+- **Battle palettes**: 0x30f30 · **Class starting stats**: 0x3050 · **Level-up**: 0x2d0a4
+- **Overworld map**: rows via lut_OWPtrTbl 0x4010 · **Standard maps**: lut_SMPtrTbl 0x10010
+
+(See `CLAUDE.md` for the full offset/format reference.)
 
 ### Character Encoding
 Custom character encoding map (0x80-0xC5) for FF1's text system:
@@ -87,20 +100,17 @@ Custom character encoding map (0x80-0xC5) for FF1's text system:
 
 ### Element & Family Bitvectors
 
-**Element Encoding** (weak/resist fields):
+**Element** (weak/resist/attack-element, shared with weapons & magic):
 ```
-0x10 = Fire
-0x20 = Cold
-0x40 = Lightning
-0x80 = Earth
+0x01 Status  0x02 Poison  0x04 Time  0x08 Death
+0x10 Fire    0x20 Ice     0x40 Lightning  0x80 Earth
 ```
+Verified: STOP=Time, RUB=Death, QAKE=Earth, FIRE/ICE/LIT match.
 
-**Family Encoding**:
+**Family** (monster category, also the weapon "vs family" bonus):
 ```
-0x02 = Dragon
-0x04 = Giant
-0x20 = Aquatic
-0x40 = Spellcaster
+0x02 Dragon  0x04 Giant  0x08 Undead  0x10 Were
+0x20 Aquatic 0x40 Mage   0x80 Regen
 ```
 
 ## Using the Scripts
@@ -125,9 +135,21 @@ python3 print_monsters.py ../roms/Final\ Fantasy\ \(USA\).nes
 python3 find_strings.py ../roms/Final\ Fantasy\ \(USA\).nes
 ```
 
-### Extract Monster Sprites
+### Extract Monster Sprites (full color)
 ```bash
-python3 find_ff1_monster_tiles.py
+python3 extract_monster_sprites.py        # 123 sprites -> output/monsters/
+```
+
+### Render Maps
+```bash
+python3 render_standard_map.py            # 61 towns/dungeons (plain + annotated)
+python3 render_overworld.py               # overworld (plain + annotated)
+```
+
+### Build & Browse the Data Atlas
+```bash
+python3 export_json.py                     # -> output/ff1_data.json
+cd .. && python3 -m http.server            # then open http://localhost:8000/atlas.html
 ```
 
 ## Analysis Tools Used
@@ -155,7 +177,7 @@ Custom scripts for automated extraction and analysis:
 
 ### Completed ✅
 - Monster names extracted (all 128 monsters)
-- Monster stats structure decoded (17/20 fields identified)
+- Monster stats fully decoded (all 20 struct bytes identified)
 - Character encoding table rebuilt from DataCrystal (NA section, with DTE pairs)
 - String extraction working (intro text at 0x37f2f and dialog at ~0x28000 extract cleanly)
 - Dialog dumper (print_dialog.py walks the 256-entry pointer table)
@@ -168,19 +190,19 @@ Custom scripts for automated extraction and analysis:
 - Encounter zones / battle domains extracted and verified (print_domains.py)
 - Location->zone mapping decoded (overworld 8x8 grid + map_id+0x40, from bank_0F.asm)
 - Standard-map zones labeled by place name (print_domains.py MAP_NAMES)
-- Monster weak/resist decoded with the element bitfield (print_monsters.py)
-- Monster stat fields identified (AI/agility/defense/hit/strength/crit/ailment/magdef)
+- Monster stats show guide-style display values (Hit% = 84+raw/2, Eva/MagDef =
+  raw/2, RunLv = (morale-80)/2); byte E pinned as attack element
 - Enemy AI scripts extracted - spells & skills each monster uses (print_ai.py)
 - Monster battle palettes mapped (print_palettes.py)
 - All 123 monster sprites extracted in full color including fiends/Chaos,
   black background like the game (extract_monster_sprites.py)
-- Element bitfield fully decoded (Status/Poison/Time/Death/Fire/Ice/Lit/Earth)
-
-- All 20 monster stat bytes identified (byte E = attack element, confirmed by
-  cross-referencing gamercorner guide); print_monsters.py shows guide-style
-  display values (Hit% = 84+raw/2, Eva/MagDef = raw/2, RunLv = (morale-80)/2)
-- Overworld map rendered in full color (render_overworld.py, 4096x4096)
-- All 61 standard maps rendered in full color (render_standard_map.py)
+- Element & family bitfields fully decoded
+- Overworld map rendered in color with entrance + encounter-zone overlays (render_overworld.py)
+- All 61 standard maps rendered in color, plus annotated versions with chest
+  and NPC sprites overlaid (render_standard_map.py)
+- Character classes: starting stats, EXP table, level-up growth (print_classes.py)
+- Verified vs external guides: monsters (gamercorner), treasure & dungeons
+  (mikesrpgcenter), weapons/armor stats & prices
 
 ### Data atlas (JSON + HTML)
 - `scripts/export_json.py` -> `output/ff1_data.json` aggregates everything
@@ -188,23 +210,24 @@ Custom scripts for automated extraction and analysis:
   maps with chest/NPC overlays, classes). Usage:
   `python3 scripts/export_json.py && python3 -m http.server` then open atlas.html
 
-### In Progress 🔄
-- A few high-range gold-chest ids (0xb0+) not in the gold-name table
+### In Progress / minor 🔄
 - Shop town/type labels and clinic/caravan price slots
 - Weapon/armor category words (second word from icon tile)
+- Per-NPC sprite palette is per-map (game uses one scheme); not per-object
 
 ### TODO ⏸️
-- Character class / level-up / EXP tables
-- Maps (RLE-compressed overworld + town/dungeon)
+- Magic-learning table (which class learns which spell at which level)
 - Extract music and sound effects
-- Map complete game data structures in Ghidra
+- Overworld object overlay (NPCs/bridge/canal)
 
 ## Reference Materials
 
 ### ROM/RAM Maps
 - [Final Fantasy ROM Map](https://datacrystal.tcrf.net/wiki/Final_Fantasy/ROM_map)
 - [Final Fantasy RAM Map](https://datacrystal.tcrf.net/wiki/Final_Fantasy/RAM_map)
-- [Game Corner Monster Guide](https://guides.gamercorner.net/ff/monsters/)
+- [Game Corner Monster Guide](https://guides.gamercorner.net/ff/monsters/) (stat verification)
+- [Entroper/FF1Disassembly](https://github.com/Entroper/FF1Disassembly) (offsets & formats)
+- [Mike's RPG Center - FF1](https://mikesrpgcenter.com/ffantasy/) (treasure/equipment verification)
 
 ### NES Development
 - [6502 Instruction Reference](https://www.nesdev.org/obelisk-6502-guide/reference.html)
@@ -214,22 +237,25 @@ Custom scripts for automated extraction and analysis:
 ## Example Monster Data
 
 ```
-NAME      HP   GOLD  EXP   DMG  HIT  FAM     WEAK      RESIST
-IGUANA    92   50    153   18   1    Dragon  -         -
-AGAMA     296  1200  2472  31   2    Dragon  Cold      Fire
-SAURIA    196  658   1977  30   1    Dragon  -         -
-GIANT     240  879   879   38   1    Giant   -         -
-FrGIANT   336  1752  1752  60   1    Giant   Fire      Cold
-R.GIANT   300  1506  1506  73   1    Giant   Cold      Fire
-SAHAG     28   30    30    10   1    Aquatic Lightning  Fire/Earth
+NAME      HP   GOLD  EXP   ATK  HITS FAMILY   WEAK  RESIST
+IGUANA    92   50    153   18   1    Dragon   -     -
+GIANT     240  879   879   38   1    Giant    -     -
+FrGIANT   336  1752  1752  60   1    Giant    Fire  Ice
+R.GIANT   300  1506  1506  73   1    Giant    Ice   Fire
+SAHAG     28   30    30    10   1    Aquatic  Lit   Fire|Earth
 ```
+
+(Full data for all 128 monsters — with AI, palettes, and the rest — is in the
+JSON export / atlas.)
 
 ## Notes
 
-- Ghidra disassembly attempted but FCEUX debugger proved more effective for initial analysis
-- Character tiles start at PPU $80 (verified in FCEUX PPU Viewer)
-- IMP monster verified as bytes 92 96 99 in name table
-- Some monster names have extra characters (e.g., "PIMP" instead of "IMP")
+- Most data was decoded with the Entroper/FF1Disassembly as a reference for
+  offsets and formats, then verified against the ROM and external guides.
+- Character names use FF1's custom encoding plus DTE pairs for dialog text.
+- Lesson learned: the treasure table was briefly read from 0x3f110 (the RNG
+  table) instead of 0x3110 (lut_Treasure) — caught by cross-referencing the
+  mikesrpgcenter dungeon maps. Cross-checking offsets against guides pays off.
 
 ## License & Usage
 This is a reverse engineering project for educational and preservation purposes. All game content is property of Square Enix.
