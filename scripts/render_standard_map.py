@@ -86,14 +86,32 @@ def render_map(data, mapid):
 
 
 def find_chests(data, mapid):
-    """Chest tiles: tileset_prop ssss field == 4. Returns (mx, my, treasure_id)."""
+    """Chest tiles: tileset_prop ssss field == 4. Returns (mx, my, treasure_id, metatile)."""
     ts = data[TILESETS + mapid]
     pb = PROP + ts * 256
     chest_tiles = {m: data[pb + m * 2 + 1] for m in range(128)
                    if (data[pb + m * 2] >> 1) & 0x0f == 4}
     grid = decompress(data, SMPTR + struct.unpack_from('<H', data, SMPTR + mapid * 2)[0])
-    return [(i % MAP_W, i // MAP_W, chest_tiles[m])
+    return [(i % MAP_W, i // MAP_W, chest_tiles[m], m)
             for i, m in enumerate(grid) if m in chest_tiles]
+
+
+def metatile_sprite(data, mapid, m):
+    """Render a metatile (its 2x2 CHR tiles + BG palette) as a 16x16 image."""
+    ts = data[TILESETS + mapid]
+    tb, ab, cb = TSA + ts * 512, ATTR + ts * 128, CHRBASE + ts * 0x800
+    po = PAL + mapid * 0x30
+    pal = [NES_PALETTE[data[po + (data[ab + m] & 3) * 4 + c] & 0x3f] for c in range(4)]
+    img = Image.new('RGB', (16, 16))
+    px = img.load()
+    for qi, cid in enumerate((data[tb + m], data[tb + 128 + m],
+                              data[tb + 256 + m], data[tb + 384 + m])):
+        t = tile_pixels(data, cb, cid)
+        ox, oy = (qi % 2) * 8, (qi // 2) * 8
+        for y in range(8):
+            for x in range(8):
+                px[ox + x, oy + y] = pal[t[y, x]]
+    return img
 
 
 def find_npcs(data, mapid):
@@ -107,34 +125,33 @@ def find_npcs(data, mapid):
     return out
 
 
-def npc_sprite(data, oid, sprite_pal):
-    """16x16 RGBA standing sprite for a map object (tiles 0,1,4,5 of its graphic)."""
+def npc_sprite(data, oid, sprite_pals):
+    """16x16 RGBA standing sprite for a map object. Per Draw2x2Sprite / the down
+    TSA (lut_2x2MapObj_Down): tiles 0,1,2,3 (TL,TR,BL,BR), top row sprite palette
+    2, bottom row sprite palette 3."""
     base = OBJCHR + data[OBJGFX + oid] * 0x100
     img = Image.new('RGBA', (16, 16))
     px = img.load()
-    for qi, ti in enumerate((0, 1, 4, 5)):
+    layout = ((0, 0, 0, 2), (1, 8, 0, 2), (2, 0, 8, 3), (3, 8, 8, 3))  # tile, ox, oy, pal
+    for ti, ox, oy, pi in layout:
         t = tile_pixels(data, base, ti)
-        ox, oy = (qi % 2) * 8, (qi // 2) * 8
+        pal = sprite_pals[pi]
         for y in range(8):
             for x in range(8):
                 v = t[y, x]
                 if v:  # color 0 = transparent so the map shows through
-                    px[ox + x, oy + y] = sprite_pal[v] + (255,)
+                    px[ox + x, oy + y] = pal[v] + (255,)
     return img
 
 
-def annotate(img, data, mapid, item_name):
-    """Overlay chests (yellow box + contents label) and NPCs (their actual sprite)."""
-    d = ImageDraw.Draw(img)
-    for mx, my, tid in find_chests(data, mapid):
-        x, y = mx * 16, my * 16
-        d.rectangle([x, y, x + 15, y + 15], outline=(255, 230, 0), width=2)
-        d.text((x + 1, y + 16), item_name(data[TREASURE + tid]), fill=(255, 230, 0), font=_FONT)
-    # map sprite palette 0 (bytes 0x10-0x13 of the per-map palette)
-    po = PAL + mapid * 0x30 + 0x10
-    sprite_pal = [NES_PALETTE[data[po + c] & 0x3f] for c in range(4)]
+def annotate(img, data, mapid):
+    """Overlay treasure chests (their chest sprite) and NPCs (their actual sprite)."""
+    for mx, my, tid, m in find_chests(data, mapid):
+        img.paste(metatile_sprite(data, mapid, m), (mx * 16, my * 16))
+    po = PAL + mapid * 0x30 + 0x10  # sprite palettes (4 x 4 NES colors)
+    sprite_pals = [[NES_PALETTE[data[po + p * 4 + c] & 0x3f] for c in range(4)] for p in range(4)]
     for oid, mx, my in find_npcs(data, mapid):
-        spr = npc_sprite(data, oid, sprite_pal)
+        spr = npc_sprite(data, oid, sprite_pals)
         img.paste(spr, (mx * 16, my * 16), spr)
     return img
 
@@ -165,7 +182,7 @@ def main():
             npcs = find_npcs(data, mapid)
             print(f"\n[{mapid:02d}] {name}  ({len(chests)} chests, {len(npcs)} NPCs)")
             seen = set()
-            for mx, my, tid in chests:
+            for mx, my, tid, m in chests:
                 if tid in seen:
                     continue
                 seen.add(tid)
@@ -177,7 +194,7 @@ def main():
         name = MAP_NAMES.get(mapid, f'map{mapid}').replace('/', '_').replace(' ', '_')
         base = render_map(data, mapid)
         base.save(os.path.join(out_dir, f"{mapid:02d}_{name}.png"))
-        annotate(base.copy(), data, mapid, item_name).save(
+        annotate(base.copy(), data, mapid).save(
             os.path.join(out_dir, f"{mapid:02d}_{name}_annotated.png"))
     print(f"rendered 61 standard maps (plain + annotated) to {out_dir}")
 
