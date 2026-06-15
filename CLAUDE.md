@@ -238,6 +238,16 @@ actual sprite (lut_MapObjGfx 0x2e10[obj]->graphic, CHR at lut_MapObjCHR
 0xa210+gfx*0x100; per Draw2x2Sprite/lut_2x2MapObj_Down: tiles 0,1,2,3, top row
 sprite palette 2, bottom row palette 3). `--list` still prints chest contents
 (lut_Treasure 0x3110; gold amount = get_price(id)).
+Teleports (find_teleports / teleport_links): a metatile's property byte0 top 2
+bits = teleport type (0x80 normal->standard map, 0xc0 exit->overworld, 0x40
+warp->previous floor); property byte1 = teleport id. Tables are in
+BANK_TELEPORTINFO (bank 0, file=0x10+(CPU-0x8000)): lut_NormTele_X/Y/Map at
+0x2d10/0x2d50/0x2d90 (64), lut_ExitTele_X/Y at 0x2c70/0x2c80 (16), lut_EntrTele
+(overworld entrances) at 0x2c10/0x2c30/0x2c50 (32). teleport_links() dedupes
+(towns tile their whole border with warp tiles - that's just the OW exit, so warp
+is reduced to a flag). Annotated maps mark normal teleports (cyan, -> dest name)
+and exits (green); the atlas makes them clickable. Verified: Earth Cave
+B1->B2->B3->B4->B5->overworld, Ice Cave branch, Castle Ordeals 2F teleport maze.
 
 #### `scripts/render_overworld.py` ⭐
 **Purpose**: Render the 256x256 overworld to PNG (4096x4096 + preview). Rows

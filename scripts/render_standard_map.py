@@ -24,6 +24,9 @@ from print_domains import MAP_NAMES
 
 SMPTR, TILESETS, TSA, ATTR, CHRBASE, PAL = 0x10010, 0x2cd0, 0x1010, 0x410, 0xc010, 0x2010
 PROP, MAPOBJ, TREASURE = 0x810, 0x3410, 0x3110  # lut_Treasure = $B100 bank 0
+# Teleport tables (BANK_TELEPORTINFO = bank 0; file = 0x10 + (CPU-0x8000))
+NORMTELE_X, NORMTELE_Y, NORMTELE_MAP = 0x2d10, 0x2d50, 0x2d90  # standard -> standard (64)
+EXITTELE_X, EXITTELE_Y = 0x2c70, 0x2c80                        # standard -> overworld (16)
 OBJGFX, OBJCHR = 0x2e10, 0xa210  # lut_MapObjGfx ($AE00 bank0), lut_MapObjCHR ($A200 bank2)
 MAP_W = MAP_H = 64
 
@@ -96,6 +99,65 @@ def find_chests(data, mapid):
             for i, m in enumerate(grid) if m in chest_tiles]
 
 
+def find_teleports(data, mapid):
+    """Teleport tiles (stairs/doors/warps). Property byte0 top 2 bits = type, byte1
+    = teleport id. Returns dicts: {x, y, kind, dest, dest_x, dest_y}.
+      kind 'map'  -> normal teleport to another standard map (dest = map id/name)
+      kind 'exit' -> exit to the overworld at (dest_x, dest_y)
+      kind 'warp' -> back to the previous floor (no fixed destination)
+    """
+    ts = data[TILESETS + mapid]
+    pb = PROP + ts * 256
+    tele = {}
+    for m in range(128):
+        typ = data[pb + m * 2] & 0xc0
+        if typ:
+            tele[m] = (typ, data[pb + m * 2 + 1])
+    grid = decompress(data, SMPTR + struct.unpack_from('<H', data, SMPTR + mapid * 2)[0])
+    out = []
+    for i, m in enumerate(grid):
+        if m not in tele:
+            continue
+        typ, tid = tele[m]
+        x, y = i % MAP_W, i // MAP_W
+        if typ == 0x80:      # normal: -> another standard map
+            dm = data[NORMTELE_MAP + tid]
+            out.append({'x': x, 'y': y, 'kind': 'map', 'dest': dm,
+                        'dest_name': MAP_NAMES.get(dm, f'map{dm}'),
+                        'dest_x': data[NORMTELE_X + tid], 'dest_y': data[NORMTELE_Y + tid]})
+        elif typ == 0xc0:    # exit: -> overworld
+            out.append({'x': x, 'y': y, 'kind': 'exit', 'dest': None,
+                        'dest_x': data[EXITTELE_X + tid], 'dest_y': data[EXITTELE_Y + tid]})
+        else:                # 0x40 warp: -> previous floor
+            out.append({'x': x, 'y': y, 'kind': 'warp', 'dest': None})
+    return out
+
+
+def teleport_links(data, mapid):
+    """Deduplicated teleport summary for a map. Warp tiles (which in towns tile the
+    whole border) are reduced to a single flag; normal teleports are the meaningful
+    inter-floor connections.
+      maps  : [{dest, dest_name, dest_x, dest_y, src_x, src_y}] distinct by dest map
+      exits : [{dest_x, dest_y, src_x, src_y}] distinct overworld exit coords
+      warp  : True if any warp-to-previous-floor tile exists
+    """
+    tps = find_teleports(data, mapid)
+    maps, exits, warp = {}, {}, False
+    for t in tps:
+        if t['kind'] == 'map':
+            maps.setdefault(t['dest'], {'dest': t['dest'], 'dest_name': t['dest_name'],
+                                        'dest_x': t['dest_x'], 'dest_y': t['dest_y'],
+                                        'src_x': t['x'], 'src_y': t['y']})
+        elif t['kind'] == 'exit':
+            exits.setdefault((t['dest_x'], t['dest_y']),
+                             {'dest_x': t['dest_x'], 'dest_y': t['dest_y'],
+                              'src_x': t['x'], 'src_y': t['y']})
+        else:
+            warp = True
+    return {'maps': sorted(maps.values(), key=lambda d: d['dest']),
+            'exits': list(exits.values()), 'warp': warp}
+
+
 def metatile_sprite(data, mapid, m):
     """Render a metatile (its 2x2 CHR tiles + BG palette) as a 16x16 image."""
     ts = data[TILESETS + mapid]
@@ -145,7 +207,8 @@ def npc_sprite(data, oid, sprite_pals):
 
 
 def annotate(img, data, mapid):
-    """Overlay treasure chests (their chest sprite) and NPCs (their actual sprite)."""
+    """Overlay treasure chests, NPCs (their actual sprite), and teleport markers
+    (cyan = stairs/door to another map, green = exit to the overworld)."""
     for mx, my, tid, m in find_chests(data, mapid):
         img.paste(metatile_sprite(data, mapid, m), (mx * 16, my * 16))
     po = PAL + mapid * 0x30 + 0x10  # sprite palettes (4 x 4 NES colors)
@@ -153,6 +216,22 @@ def annotate(img, data, mapid):
     for oid, mx, my in find_npcs(data, mapid):
         spr = npc_sprite(data, oid, sprite_pals)
         img.paste(spr, (mx * 16, my * 16), spr)
+
+    links = teleport_links(data, mapid)
+    draw = ImageDraw.Draw(img)
+
+    def marker(sx, sy, color, label):
+        x0, y0 = sx * 16, sy * 16
+        draw.rectangle([x0 - 1, y0 - 1, x0 + 16, y0 + 16], outline=color, width=2)
+        tw = int(draw.textlength(label, font=_FONT)) + 4
+        ly = y0 - 13 if y0 >= 13 else y0 + 17
+        draw.rectangle([x0, ly, x0 + tw, ly + 12], fill=(0, 0, 0))
+        draw.text((x0 + 2, ly), label, fill=color, font=_FONT)
+
+    for m in links['maps']:
+        marker(m['src_x'], m['src_y'], (90, 200, 255), '→ ' + m['dest_name'])
+    for e in links['exits']:
+        marker(e['src_x'], e['src_y'], (120, 255, 120), '→ overworld')
     return img
 
 
@@ -187,6 +266,15 @@ def main():
                     continue
                 seen.add(tid)
                 print(f"    chest @({mx:2d},{my:2d}) TC{tid:<3d} = {item_name(data[TREASURE + tid])}")
+            links = teleport_links(data, mapid)
+            for m in links['maps']:
+                print(f"    stairs @({m['src_x']:2d},{m['src_y']:2d}) -> {m['dest_name']} "
+                      f"@({m['dest_x']},{m['dest_y']})")
+            for e in links['exits']:
+                print(f"    exit   @({e['src_x']:2d},{e['src_y']:2d}) -> overworld "
+                      f"@({e['dest_x']},{e['dest_y']})")
+            if links['warp']:
+                print("    warp   -> previous floor / overworld")
         return
 
     os.makedirs(out_dir, exist_ok=True)

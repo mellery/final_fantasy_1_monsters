@@ -20,7 +20,7 @@ from print_domains import MAP_NAMES
 from print_classes import (CLASS_NAMES, starting_stats, starting_mp,
                            exp_to_advance, levelup_summary, STAT_BITS)
 from print_magic_permissions import get_magic_permissions
-from render_standard_map import find_chests, find_npcs
+from render_standard_map import find_chests, find_npcs, teleport_links
 
 MON, AI_TABLE, MAGIC_DATA = 0x30530, 0x31030, 0x301f0
 WEAPON, ARMOR, FORM, DOMAINS, TREASURE = 0x30010, 0x30150, 0x2c410, 0x2c010, 0x3110
@@ -140,7 +140,7 @@ def build(data):
         npcs = [{'id': oid, 'x': mx, 'y': my} for oid, mx, my in find_npcs(data, mid)]
         maps.append({'id': mid, 'name': MAP_NAMES.get(mid, f'map{mid}'),
                      'tileset': data[0x2cd0 + mid], 'encounter_rate': data[BATTLE_RATES + 1 + mid],
-                     'chests': chests, 'npcs': npcs})
+                     'links': teleport_links(data, mid), 'chests': chests, 'npcs': npcs})
     out['maps'] = maps
 
     # Classes

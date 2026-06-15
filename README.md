@@ -209,6 +209,12 @@ Custom scripts for automated extraction and analysis:
   Verified: HARM is white-mage-exclusive, RedMage learns both schools but not
   level 8, WhiteWizard/BlackWizard get their full school
 - Per-map encounter rate (lut_BattleRates 0x2cc10, entry 0 = unused overworld)
+- Standard-map teleport connections (render_standard_map.find_teleports /
+  teleport_links): stairs/doors decoded to their destination map + coords via the
+  tile-property teleport type (byte0 top 2 bits) and lut_NormTele/ExitTele.
+  Annotated maps mark stairs (→ dest) and overworld exits; the atlas links them so
+  you can click through the dungeon floors. Verified: Earth Cave B1→…→B5→overworld,
+  Ice Cave branch, ToFR Earth→Fire, Castle Ordeals teleport maze
 - Class sprites extracted pixel-exact (extract_class_sprites.py): overworld
   'mapman' (correct per-class palette split top/bottom row) + battle sprite
   (standing pose, class battle palette). Verified: black mage blue robe/yellow
@@ -234,8 +240,6 @@ Custom scripts for automated extraction and analysis:
 ### TODO ⏸️
 - Extract music and sound effects (lut_TilesetMusicTrack maps tileset->track #,
   but the per-song note data is a custom engine - not yet decoded)
-- Standard-map teleport connections (stairs/doors -> destination map; tile
-  teleport id indexes lut_NormTele/WarpTele/ExitTele)
 - Overworld object overlay (NPCs/bridge/canal)
 
 ## Reference Materials

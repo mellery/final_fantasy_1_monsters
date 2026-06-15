@@ -38,6 +38,8 @@
   .owtog { background:var(--panel); color:var(--txt); border:1px solid var(--line);
            padding:5px 12px; border-radius:6px; cursor:pointer; margin-right:5px; }
   .owtog.active { background:var(--accent); color:#000; border-color:var(--accent); font-weight:bold; }
+  .maplink { color:#5ac8ff; cursor:pointer; margin-right:8px; white-space:nowrap; }
+  .maplink:hover { text-decoration:underline; }
   .grid64 { display:grid; grid-template-columns:repeat(8,1fr); gap:2px; max-width:760px; }
   .grid64 div { background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:6px; font-size:11px; min-height:46px; }
   .grid64 b { color:var(--accent); }
@@ -133,6 +135,14 @@ function table(rows, cols, fmt={}){
   return h+'</tbody></table>';
 }
 
+function goMap(id){
+  search.value=''; render();
+  const el = document.getElementById('map-'+id);
+  if(el){ el.scrollIntoView({behavior:'smooth', block:'center'});
+    el.style.outline='2px solid var(--accent)';
+    setTimeout(()=>el.style.outline='', 1600); }
+}
+
 function overworldView(d){
   return `<div style="max-width:1100px">
     <p class="dim">The 256×256 overworld map. <b>Annotated</b> overlays the 8×8 encounter-zone
@@ -159,10 +169,15 @@ function mapsView(d){
   return d.maps.filter(m=>!q||m.name.toLowerCase().includes(q)).map(m=>{
     const fn = String(m.id).padStart(2,'0')+'_'+m.name.replace(/\//g,'_').replace(/ /g,'_');
     const ch = m.chests.map(c=>`<span class="pill">${c.contents} <span class="dim">(${c.x},${c.y})</span></span>`).join('');
-    return `<div class="mapcard"><img loading="lazy" src="output/maps/${fn}_annotated.png"
+    const lk = m.links || {maps:[],exits:[],warp:false};
+    const conn = lk.maps.map(L=>`<a class="maplink" onclick="goMap(${L.dest})">→ ${L.dest_name}</a>`).join('');
+    const tags = (lk.exits.length?'<span class="pill">⤴ overworld</span>':'')
+               + (lk.warp?'<span class="pill">↑ warp back</span>':'');
+    return `<div class="mapcard" id="map-${m.id}"><img loading="lazy" src="output/maps/${fn}_annotated.png"
       onerror="this.src='output/maps/${fn}.png';this.onerror=null">
       <h3>${m.name}</h3>
       <div class="dim">tileset ${m.tileset} · rate ${m.encounter_rate} · ${m.chests.length} chests · ${m.npcs.length} NPCs</div>
+      ${conn||tags?`<div style="margin-top:6px">${conn}${conn&&tags?' ':''}${tags}</div>`:''}
       <div style="margin-top:6px">${ch||'<span class=dim>no chests</span>'}</div></div>`;
   }).join('');
 }
