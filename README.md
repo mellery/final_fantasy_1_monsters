@@ -214,8 +214,9 @@ Custom scripts for automated extraction and analysis:
 ### Data atlas (JSON + HTML)
 - `scripts/export_json.py` -> `output/ff1_data.json` aggregates everything
 - `atlas.html` browses it (monsters, items, magic, treasure, formations as
-  battle scenes, zones, maps with chest/NPC overlays, classes with overworld +
-  battle sprites). Sprite-on-hover throughout. Usage:
+  battle scenes, overworld map (plain/annotated toggle), zones, maps with
+  chest/NPC overlays, classes with overworld + battle sprites). Sprite-on-hover
+  throughout. Usage:
   `python3 scripts/export_json.py && python3 -m http.server` then open atlas.html
 
 ### In Progress / minor 🔄

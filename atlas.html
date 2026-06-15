@@ -35,6 +35,9 @@
   .fcard h3 { margin:8px 0 6px; color:var(--accent); font-size:14px; }
   .sprthumb { height:30px; image-rendering:pixelated; vertical-align:middle; cursor:zoom-in;
               margin-right:3px; background:#000; border-radius:3px; }
+  .owtog { background:var(--panel); color:var(--txt); border:1px solid var(--line);
+           padding:5px 12px; border-radius:6px; cursor:pointer; margin-right:5px; }
+  .owtog.active { background:var(--accent); color:#000; border-color:var(--accent); font-weight:bold; }
   .grid64 { display:grid; grid-template-columns:repeat(8,1fr); gap:2px; max-width:760px; }
   .grid64 div { background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:6px; font-size:11px; min-height:46px; }
   .grid64 b { color:var(--accent); }
@@ -67,6 +70,7 @@ const TABS = {
   magic:     d => table(d.magic, ['id','name','accuracy','effect','element','target']),
   treasure:  d => table(d.treasure, ['chest','contents']),
   formations:d => formationsView(d),
+  overworld: d => overworldView(d),
   maps:      d => mapsView(d),
   zones:     d => zonesView(d),
   classes:   d => classesView(d),
@@ -120,6 +124,27 @@ function table(rows, cols, fmt={}){
     }).join('')+'</tr>';
   }
   return h+'</tbody></table>';
+}
+
+function overworldView(d){
+  return `<div style="max-width:1100px">
+    <p class="dim">The 256×256 overworld map. <b>Annotated</b> overlays the 8×8 encounter-zone
+      grid (zones 0–63) and entrance markers for towns &amp; dungeons.</p>
+    <div style="margin:0 0 10px">
+      <button class="owtog active" onclick="owSet(this,'_annotated')">annotated</button>
+      <button class="owtog" onclick="owSet(this,'')">plain</button>
+    </div>
+    <a id="owfull" href="output/maps/overworld_annotated.png" target="_blank">
+      <img id="owimg" src="output/maps/overworld_annotated_preview.png" alt="overworld"
+           style="width:100%;image-rendering:pixelated;border:1px solid var(--line);border-radius:6px;background:#5ab">
+    </a>
+    <p class="dim" style="margin-top:6px">Click the map to open the full 4096×4096 image.</p>
+  </div>`;
+}
+function owSet(btn, suf){
+  document.getElementById('owimg').src = `output/maps/overworld${suf}_preview.png`;
+  document.getElementById('owfull').href = `output/maps/overworld${suf}.png`;
+  document.querySelectorAll('.owtog').forEach(b=>b.classList.toggle('active', b===btn));
 }
 
 function mapsView(d){
