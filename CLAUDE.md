@@ -261,6 +261,21 @@ byte1 != 0 = shop id; see @CheckShop in bank_0F); shop type from lut_ShopTypes
 Map nodes get URL="#m<id>" so the atlas graph tab can make them clickable.
 Outputs output/ff1_map_graph.dot and output/map_graph.svg. Layout rankdir=LR.
 
+#### `scripts/rom_map.py` ⭐
+**Purpose**: ROM memory-map / coverage analysis. The 256 KB PRG (16 x 16 KB
+banks, MMC1, CHR-RAM) is classified per byte: instruction (in a code bank, not a
+known table), data (inside a documented structure), or unknown (undecoded data,
+notably music). Code banks vs data banks come from the FF1 disassembly file types
+(.asm = code: banks 1,9,B,C,D,E,F; .dat = data: 0,2-8,A); documented structures
+are the REGIONS list (the offsets this project decodes). If roms/*.cdl exists it
+is parsed for a comparison (a CDL only logs bytes hit during play, so it is *less*
+complete than this static map). Outputs: output/rom_map.png (512x512 byte heatmap,
+32 rows/bank), output/rom_map.json (atlas: banks, regions, totals), and Ghidra
+exports - output/ff1_ghidra_symbols.txt (ImportSymbolsScript: name + CPU $8000/
+$C000 view) and output/FF1_GhidraImport.py (GhidraScript that labels+comments each
+region by locating the GhidraNes bank block PRG<bb>_8/_C and offsetting within it).
+Result: ~35% instruction, ~60% data, ~5% unknown.
+
 #### `scripts/render_overworld.py` ⭐
 **Purpose**: Render the 256x256 overworld to PNG (4096x4096 + preview). Rows
 RLE-compressed, pointer table lut_OWPtrTbl at 0x4010 (bank 01). OW tileset is one

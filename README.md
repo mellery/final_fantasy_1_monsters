@@ -38,6 +38,7 @@ finalfantasy/
 │   ├── render_standard_map.py / render_overworld.py         # map renderers
 │   ├── render_formations.py                                 # battle-scene renderer
 │   ├── build_map_graph.py                                   # world map graph (DOT/SVG)
+│   ├── rom_map.py                                           # ROM coverage map + Ghidra export
 │   ├── export_json.py                                       # JSON for the atlas
 │   ├── item_names.py / ff1_palettes.py / load_tbl.py        # shared helpers
 │   └── find_strings.py / print_dialog.py / nes_color_converter.py / ...
@@ -220,6 +221,12 @@ Custom scripts for automated extraction and analysis:
   map_graph.svg): overworld + 61 maps (towns/castles/dungeons) + shops as nodes;
   edges from overworld entrances, map teleports, exits, and town→shop door tiles.
   Shop ids come from town door tiles (property byte1), typed via lut_ShopTypes
+- ROM coverage map (rom_map.py): classifies all 256 KB of PRG as instruction /
+  data / unknown (from the disassembly's per-bank code/data split + our documented
+  tables), renders a 512×512 byte heatmap, and reports per-bank percentages
+  (~35% instruction, ~60% data, ~5% unknown). Also exports a Ghidra symbol file
+  (ff1_ghidra_symbols.txt) and a ready-to-run Ghidra script (FF1_GhidraImport.py)
+  that labels every documented region in a GhidraNes-loaded program
 - Class sprites extracted pixel-exact (extract_class_sprites.py): overworld
   'mapman' (correct per-class palette split top/bottom row) + battle sprite
   (standing pose, class battle palette). Verified: black mage blue robe/yellow
@@ -233,9 +240,10 @@ Custom scripts for automated extraction and analysis:
 - `scripts/export_json.py` -> `output/ff1_data.json` aggregates everything
 - `atlas.html` browses it (monsters, items, magic with spell-learning chart,
   treasure, formations as battle scenes, overworld map, a clickable world-map
-  connectivity graph, maps with chest/NPC/teleport overlays, zones, classes with
-  overworld + battle sprites). Sprite-on-hover throughout. The graph tab loads
-  `output/map_graph.svg` (run `build_map_graph.py`). Usage:
+  connectivity graph, a ROM coverage map (instruction/data/unknown), maps with
+  chest/NPC/teleport overlays, zones, classes with overworld + battle sprites).
+  Sprite-on-hover throughout. The graph and ROM-map tabs load `output/map_graph.svg`
+  and `output/rom_map.{png,json}` (run `build_map_graph.py` / `rom_map.py`). Usage:
   `python3 scripts/export_json.py && python3 -m http.server` then open atlas.html
 
 ### In Progress / minor 🔄

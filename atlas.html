@@ -75,6 +75,7 @@ const TABS = {
   formations:d => formationsView(d),
   overworld: d => overworldView(d),
   graph:     d => graphView(d),
+  'rom map': d => romMapView(),
   maps:      d => mapsView(d),
   zones:     d => zonesView(d),
   classes:   d => classesView(d),
@@ -134,6 +135,57 @@ function table(rows, cols, fmt={}){
     }).join('')+'</tr>';
   }
   return h+'</tbody></table>';
+}
+
+let ROMMAP = null;
+function romMapView(){
+  const r = ROMMAP;
+  if(r === null) return '<p class="dim">loading rom_map.json…</p>';
+  if(!r) return '<p class="dim">output/rom_map.json not found — run <code>python3 scripts/rom_map.py</code></p>';
+  const T = r.totals, sz = T.size, C = r.colors;
+  const pc = n => (100*n/sz).toFixed(1);
+  const kb = n => (n/1024).toFixed(1);
+  const seg = (n,col) => `<div title="${kb(n)} KB" style="width:${pc(n)}%;background:${col}"></div>`;
+  const bar = `<div style="display:flex;height:28px;border-radius:5px;overflow:hidden;border:1px solid var(--line);max-width:700px">
+      ${seg(T.code,C.instruction)}${seg(T.data,C.data)}${seg(T.unknown,C.unknown)}</div>`;
+  const chip = (col,lbl,n) => `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:20px">
+      <span class="sw" style="background:${col}"></span>${lbl} <b>${pc(n)}%</b> <span class="dim">(${kb(n)} KB)</span></span>`;
+  const key = `<div style="margin:10px 0 16px">${chip(C.instruction,'instruction',T.code)}${chip(C.data,'data (decoded)',T.data)}${chip(C.unknown,'unknown',T.unknown)}</div>`;
+
+  let cdl = '';
+  if(r.cdl){ const c=r.cdl, t=c.logged;
+    cdl = `<p class="dim" style="margin-top:10px">FCEUX .cdl (<code>${c.file}</code>, comparison): `
+        + `code ${(100*c.code/t).toFixed(1)}% · data ${(100*c.data/t).toFixed(1)}% · unknown ${(100*c.unknown/t).toFixed(1)}% `
+        + `— a CDL only logs bytes hit during play, so its "unknown" is larger than ours.</p>`;
+  }
+
+  let bt = '<h2 style="color:var(--accent)">Banks — 16 × 16 KB PRG-ROM (MMC1)</h2>'
+    + '<table><thead><tr><th>bank</th><th>CPU</th><th>role</th><th>instr</th><th>data</th><th>unk</th><th>contents</th></tr></thead><tbody>';
+  for(const b of r.banks){ const t=b.code+b.data+b.unknown;
+    bt += `<tr><td class=num>${b.bank.toString(16).toUpperCase().padStart(2,'0')}</td><td>${b.cpu}</td>`
+        + `<td>${b.role}</td><td class=num>${(100*b.code/t).toFixed(0)}%</td>`
+        + `<td class=num>${(100*b.data/t).toFixed(0)}%</td><td class=num>${(100*b.unknown/t).toFixed(0)}%</td>`
+        + `<td class="dim">${b.desc}</td></tr>`; }
+  bt += '</tbody></table>';
+
+  let rg = '<h2 style="color:var(--accent)">Documented data structures</h2>'
+    + '<table><thead><tr><th>name</th><th>bank</th><th>file offset</th><th>size</th></tr></thead><tbody>';
+  for(const x of r.regions){
+    rg += `<tr><td>${x.name}</td><td class=num>${x.bank.toString(16).toUpperCase().padStart(2,'0')}</td>`
+        + `<td class=num>0x${x.offset.toString(16)}</td><td class=num>${x.size}</td></tr>`; }
+  rg += '</tbody></table>';
+
+  return `<p class="dim" style="max-width:760px">256 KB PRG-ROM (MMC1 mapper, CHR-RAM — no CHR-ROM).
+      Classification comes from the FF1 disassembly's per-bank code/data split plus this project's
+      documented tables. <b>instruction</b> = byte in a code bank that isn't a known table;
+      <b>data</b> = inside a structure we decode; <b>unknown</b> = data not yet named (notably the
+      music/sound data, which sits in code banks and so is undercounted here).</p>
+    ${bar}${key}
+    <img src="output/rom_map.png" alt="ROM map" style="image-rendering:pixelated;width:520px;max-width:100%;
+       border:1px solid var(--line);border-radius:6px;background:#000">
+    <p class="dim" style="margin-top:4px">Each pixel = 1 byte, row-major; 32 rows per 16 KB bank (gridlines).
+       Blue = instruction, green = data, gray = unknown.</p>
+    ${cdl}${bt}${rg}`;
 }
 
 let GRAPH_SVG = null, GZOOM = 820;
@@ -297,6 +349,10 @@ document.addEventListener('mouseout', e=>{ if(e.target.closest('[data-spr]')) po
 fetch('output/map_graph.svg').then(r=>r.ok?r.text():'').then(t=>{
   GRAPH_SVG=t; if(TAB==='graph') render();
 }).catch(()=>{ GRAPH_SVG=''; });
+
+fetch('output/rom_map.json').then(r=>r.ok?r.json():'').then(j=>{
+  ROMMAP=j; if(TAB==='rom map') render();
+}).catch(()=>{ ROMMAP=''; });
 
 fetch('output/ff1_data.json').then(r=>r.json()).then(d=>{
   DATA=d;
