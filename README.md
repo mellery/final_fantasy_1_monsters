@@ -33,8 +33,9 @@ finalfantasy/
 │   ├── print_weapons.py / print_armor.py / print_magic.py   # equipment + spells
 │   ├── print_prices.py / print_shops.py / print_treasure.py # economy
 │   ├── print_formations.py / print_domains.py               # encounters + zones
-│   ├── print_classes.py                                     # class/level-up data
+│   ├── print_classes.py / extract_class_sprites.py          # class data + sprites
 │   ├── render_standard_map.py / render_overworld.py         # map renderers
+│   ├── render_formations.py                                 # battle-scene renderer
 │   ├── export_json.py                                       # JSON for the atlas
 │   ├── item_names.py / ff1_palettes.py / load_tbl.py        # shared helpers
 │   └── find_strings.py / print_dialog.py / nes_color_converter.py / ...
@@ -201,13 +202,20 @@ Custom scripts for automated extraction and analysis:
 - All 61 standard maps rendered in color, plus annotated versions with chest
   and NPC sprites overlaid (render_standard_map.py)
 - Character classes: starting stats, EXP table, level-up growth (print_classes.py)
+- Class sprites extracted pixel-exact (extract_class_sprites.py): overworld
+  'mapman' (correct per-class palette split top/bottom row) + battle sprite
+  (standing pose, class battle palette). Verified: black mage blue robe/yellow
+  hat, white mage white robe/red trim
+- Enemy formations rendered as battle scenes (render_formations.py): all monsters
+  placed at their real on-screen slots (9-small grid, 4-large, mix, fiend/Chaos)
 - Verified vs external guides: monsters (gamercorner), treasure & dungeons
   (mikesrpgcenter), weapons/armor stats & prices
 
 ### Data atlas (JSON + HTML)
 - `scripts/export_json.py` -> `output/ff1_data.json` aggregates everything
-- `atlas.html` browses it (monsters, items, magic, treasure, formations, zones,
-  maps with chest/NPC overlays, classes). Usage:
+- `atlas.html` browses it (monsters, items, magic, treasure, formations as
+  battle scenes, zones, maps with chest/NPC overlays, classes with overworld +
+  battle sprites). Sprite-on-hover throughout. Usage:
   `python3 scripts/export_json.py && python3 -m http.server` then open atlas.html
 
 ### In Progress / minor 🔄

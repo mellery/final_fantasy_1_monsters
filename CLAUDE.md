@@ -176,6 +176,37 @@ to output/monsters/ as NNN_NAME.png. Verified visually across all pages.
 **Purpose**: Report each monster's sprite CHR page and palette (the grouping
 underlying extract_monster_sprites.py).
 
+#### `scripts/render_formations.py` ⭐
+**Purpose**: Render each formation as a battle scene - monsters placed at their
+real on-screen slots, black background, like the game. Writes
+output/formations/NNN.png. Slot coords/sizes from the battle code:
+  - 9-small (type 0): 9 small (32x32) in a 3x3 grid; lut_ExplosionCoords_9Small
+    x in {16,48,80}, y in {48,80,112} (enemies land offset 16 from 32px grid).
+  - 4-large (type 1): 4 large (48x48) 2x2; x in {16,80}, y in {48,96}.
+  - mix (type 2): 2 large left column (x=16) + 6 small right (x=64,96).
+  - fiend/chaos (type 3/4): single boss sprite centred.
+Each group's size = gfx&1 (0 small, 1 large; gfx = (byte1>>2*slot)&3); slots fill
+in group order using MAX quantity (byte 6+slot low nibble). Sprites rendered via
+extract_monster_sprites in each monster's battle palette. Verified: formation 14
+= 2 GIANTs + GrIMP/WrWOLF small, 30 = 2 GIANTs, 123 = CHAOS centred.
+
+#### `scripts/extract_class_sprites.py` ⭐
+**Purpose**: Extract the 6 class sprites pixel-exact in both forms.
+  - Mapman (overworld): CHR file 0x9010+class*0x100 (bank 02). Standing/down frame
+    = tiles 0,1 (top, sprite palette 0) + 2,3 (bottom, sprite palette 1). Base OW
+    sprite palettes at file 0x3a0 (pal0=0f,0f,12,36 pal1=0f,0f,27,36); SetMapman-
+    Palette overrides color index 2 of each with lut_MapmanPalettes (file 0x3b0,
+    2 bytes/class = classA,classB). Index 0 transparent. (The earlier version
+    wrongly used white for index1 and put classA/classB as indices 2/3 of one
+    palette - fixed.)
+  - Battle: CHR lut_BatSprCHR file 0x25010+class*0x200 (32 tiles). Standing pose
+    (lut_CharacterPoseTSA CHARPOSE_STAND=00,02,04) is a 2x3: tiles 0,1/2,3/4,5
+    (DrawSimple2x3Sprite). Palette: lutClassBatSprPalette = [1,0,0,1,1,0] picks
+    sprite pal 0 or 1 from LoadBattleSpritePalettes (pal0=0f,28,18,21,
+    pal1=0f,16,30,36); index 0 transparent. Verified: black mage blue robe/yellow
+    hat, white mage white robe/red trim, red mage/fighter red+white.
+Writes output/classes/N_Name.png (mapman) and N_Name_battle.png.
+
 #### `scripts/print_ai.py` ⭐
 **Purpose**: Decode enemy AI scripts (lut_EnemyAi at 0x31030, 16 bytes each) -
 which spells (8 slots) and special skills (4 slots) each monster casts, and the

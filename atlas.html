@@ -29,6 +29,12 @@
              background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px; }
   .mapcard img { width:100%; image-rendering:pixelated; border-radius:4px; background:#000; }
   .mapcard h3 { margin:8px 0 4px; color:var(--accent); font-size:15px; }
+  .fcard { display:inline-block; vertical-align:top; width:210px; margin:0 12px 16px 0;
+           background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px; }
+  .fcard img { width:100%; image-rendering:pixelated; border-radius:4px; background:#000; }
+  .fcard h3 { margin:8px 0 6px; color:var(--accent); font-size:14px; }
+  .sprthumb { height:30px; image-rendering:pixelated; vertical-align:middle; cursor:zoom-in;
+              margin-right:3px; background:#000; border-radius:3px; }
   .grid64 { display:grid; grid-template-columns:repeat(8,1fr); gap:2px; max-width:760px; }
   .grid64 div { background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:6px; font-size:11px; min-height:46px; }
   .grid64 b { color:var(--accent); }
@@ -70,6 +76,11 @@ const TABS = {
 let NAME2ID = {};
 function monsterSprite(id, name){ return `output/monsters/${String(id).padStart(3,'0')}_${name.replace(/[ \/]/g,'_')}.png`; }
 function mag(src){ return `<span class="mag" data-spr="${src}">&#128269;</span>`; }
+function classSprites(c){
+  const mm = `output/classes/${c.id}_${c.name}.png`, bt = `output/classes/${c.id}_${c.name}_battle.png`;
+  return `<img class="sprthumb" data-spr="${mm}" src="${mm}" title="overworld sprite">`
+       + `<img class="sprthumb" data-spr="${bt}" src="${bt}" title="battle sprite">`;
+}
 
 function swatches(arr){ return arr.map(c=>`<span class="sw" style="background:${c}"></span>`).join(''); }
 function fmtAI(ai){ if(!ai) return '<span class="dim">—</span>';
@@ -79,13 +90,18 @@ function fmtAI(ai){ if(!ai) return '<span class="dim">—</span>';
 
 function formationsView(d){
   const q = search.value.toLowerCase();
-  const rows = d.formations.filter(f=>!q || f.groups.some(g=>g.monster.toLowerCase().includes(q)) || f.type.includes(q));
-  let h = '<table><thead><tr><th>id</th><th>type</th><th>no_run</th><th>groups</th></tr></thead><tbody>';
-  for(const f of rows){
-    const g = f.groups.map(x=>`${x.min}-${x.max} ${mag(monsterSprite(NAME2ID[x.monster],x.monster))}${x.monster}`).join('&nbsp;&nbsp; ');
-    h += `<tr><td class=num>${f.id}</td><td>${f.type}</td><td>${f.no_run?'yes':'<span class=dim>—</span>'}</td><td>${g||'<span class=dim>—</span>'}</td></tr>`;
-  }
-  return h+'</tbody></table>';
+  const rows = d.formations.filter(f=>f.groups.length &&
+    (!q || f.groups.some(g=>g.monster.toLowerCase().includes(q)) || f.type.includes(q)));
+  return rows.map(f=>{
+    const g = f.groups.map(x=>{
+      const n = x.min===x.max ? `${x.max}` : `${x.min}–${x.max}`;
+      return `<span class="pill">${n}× ${mag(monsterSprite(NAME2ID[x.monster],x.monster))}${x.monster}</span>`;
+    }).join(' ');
+    return `<div class="fcard">
+      <img loading="lazy" src="output/formations/${String(f.id).padStart(3,'0')}.png" alt="">
+      <h3>#${f.id} <span class="dim">${f.type}${f.no_run?' · no run':''}</span></h3>
+      <div>${g}</div></div>`;
+  }).join('') || '<p class="dim">no formations match.</p>';
 }
 
 function table(rows, cols, fmt={}){
@@ -133,7 +149,7 @@ function classesView(d){
   let h = '<h2 style="color:var(--accent)">Starting stats</h2><table><thead><tr>'
     +['class','HP','Str','Agi','Int','Vit','Luck'].map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
   for(const c of d.classes){ const s=c.start;
-    h+=`<tr><td>${mag('output/classes/'+c.id+'_'+c.name+'.png')}${c.name}</td><td class=num>${s.HP}</td><td class=num>${s.Str}</td><td class=num>${s.Agi}</td>`
+    h+=`<tr><td>${classSprites(c)} ${c.name}</td><td class=num>${s.HP}</td><td class=num>${s.Str}</td><td class=num>${s.Agi}</td>`
       +`<td class=num>${s.Int}</td><td class=num>${s.Vit}</td><td class=num>${s.Luck}</td></tr>`; }
   h+='</tbody></table><h2 style="color:var(--accent)">Level-up growth (stat increases over 49 levels)</h2>'
     +'<table><thead><tr>'+['class','Str','Agi','Int','Vit','Luck','strong HP lvls','MP lvls'].map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
@@ -160,7 +176,7 @@ search.oninput = render;
 // sprite hover popup
 const pop = document.getElementById('spritepop'), popImg = pop.querySelector('img');
 document.addEventListener('mouseover', e=>{
-  const m = e.target.closest('.mag'); if(!m) return;
+  const m = e.target.closest('[data-spr]'); if(!m) return;
   popImg.onerror = ()=> pop.style.display='none';
   popImg.onload  = ()=> pop.style.display='block';
   popImg.src = m.dataset.spr;
@@ -172,7 +188,7 @@ document.addEventListener('mousemove', e=>{
   if(y+180 > innerHeight) y = e.clientY-180;
   pop.style.left=x+'px'; pop.style.top=y+'px';
 });
-document.addEventListener('mouseout', e=>{ if(e.target.closest('.mag')) pop.style.display='none'; });
+document.addEventListener('mouseout', e=>{ if(e.target.closest('[data-spr]')) pop.style.display='none'; });
 
 fetch('output/ff1_data.json').then(r=>r.json()).then(d=>{
   DATA=d;
